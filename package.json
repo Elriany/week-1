@@ -1,0 +1,47 @@
+{
+  "name": "approval-management-api",
+  "version": "1.0.0",
+  "description": "A beginner-friendly RESTful Approval System API demonstrating Week 1 Engineering Foundation concepts with production quality enhancements.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --runInBand --detectOpenHandles",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "rest-api",
+    "jwt",
+    "swagger",
+    "winston",
+    "helmet",
+    "rate-limit",
+    "middleware",
+    "week1"
+  ],
+  "author": "Algoriza Academy Student",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "express-validator": "^7.1.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^10.0.0",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.4",
+    "prettier": "^3.3.3",
+    "supertest": "^7.0.0"
+  }
+}
