@@ -1,4 +1,4 @@
-# Algoriza Enterprise Backend Engineering Assignments
+# Enterprise Backend Engineering Assignments
 
 [![Node.js](https://img.shields.io/badge/Node.js-Express.js-green.svg)](file:///d:/Algoriza/Assignment%20Weeks/week%201/README.md)
 [![Python](https://img.shields.io/badge/Python-FastAPI-blue.svg)](file:///d:/Algoriza/Assignment%20Weeks/week%202/README.md)
