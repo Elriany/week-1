@@ -1,3 +1,6 @@
+# Angular cache
+.angular/
+
 # Compiled output
 /dist
 /tmp
