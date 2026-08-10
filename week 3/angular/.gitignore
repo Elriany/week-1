@@ -1,0 +1,26 @@
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node dependencies
+/node_modules
+
+# Logs
+npm-debug.log
+yarn-error.log
+/*.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.cproject
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.DS_Store
