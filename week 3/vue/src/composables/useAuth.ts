@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import { User, LoginRequest } from '../types/user';
+import type { User, LoginRequest } from '../types/user';
 import { authService } from '../services/auth.service';
 
 const currentUser = ref<User | null>(authService.getCurrentUser());

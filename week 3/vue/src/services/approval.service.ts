@@ -1,6 +1,6 @@
 import api from './api';
-import { Approval, ApprovalCreateRequest, ApprovalsResponseData } from '../types/approval';
-import { ApiResponse } from '../types/api';
+import type { Approval, ApprovalCreateRequest, ApprovalsResponseData } from '../types/approval';
+import type { ApiResponse } from '../types/api';
 
 export const approvalService = {
   async getApprovals(): Promise<ApiResponse<ApprovalsResponseData>> {

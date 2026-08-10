@@ -70,7 +70,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { approvalService } from '../services/approval.service';
-import { Approval } from '../types/approval';
+import type { Approval } from '../types/approval';
 import ApprovalStatusBadge from '../components/ApprovalStatusBadge.vue';
 
 const approvals = ref<Approval[]>([]);

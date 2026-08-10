@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { authService } from '../services/auth.service';
 import LoginView from '../views/LoginView.vue';
 import ApprovalsListView from '../views/ApprovalsListView.vue';
