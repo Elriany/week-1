@@ -141,7 +141,7 @@ import { EmployeeStatusRequest } from '../../types/statusRequest';
 
 const statusRequests = ref<EmployeeStatusRequest[]>([]);
 const loading = ref(true);
-const statusFilter = ref('PENDING');
+const statusFilter = ref('');
 const typeFilter = ref('');
 
 const showApproveModal = ref(false);
