@@ -1,4 +1,4 @@
-# Algoriza Enterprise Full-Stack Engineering Assignments
+# Enterprise Full-Stack Engineering Assignments
 
 [![Node.js](https://img.shields.io/badge/Node.js-Express.js-green.svg)](week%201/README.md)
 [![Python](https://img.shields.io/badge/Python-FastAPI-blue.svg)](week%202/README.md)
