@@ -1,15 +1,17 @@
 # Algoriza Enterprise Full-Stack Engineering Assignments
 
-[![Node.js](https://img.shields.io/badge/Node.js-Express.js-green.svg)](file:///d:/Algoriza/Assignment%20Weeks/week%201/README.md)
-[![Python](https://img.shields.io/badge/Python-FastAPI-blue.svg)](file:///d:/Algoriza/Assignment%20Weeks/week%202/README.md)
-[![Angular](https://img.shields.io/badge/Angular-v19-red.svg)](file:///d:/Algoriza/Assignment%20Weeks/week%203/angular/README.md)
-[![Vue.js](https://img.shields.io/badge/Vue.js-v3-emerald.svg)](file:///d:/Algoriza/Assignment%20Weeks/week%203/vue/README.md)
+[![Node.js](https://img.shields.io/badge/Node.js-Express.js-green.svg)](week%201/README.md)
+[![Python](https://img.shields.io/badge/Python-FastAPI-blue.svg)](week%202/README.md)
+[![Angular](https://img.shields.io/badge/Angular-v19-red.svg)](week%203/angular/README.md)
+[![Vue.js](https://img.shields.io/badge/Vue.js-v3-emerald.svg)](week%203/vue/README.md)
+[![SQL Server](https://img.shields.io/badge/SQL%20Server-Windows%20Auth-darkblue.svg)](week%204/README.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A multi-week enterprise engineering repository containing comparative **Approval Management System** implementations:
 - **Week 1**: Node.js / Express.js RESTful API
 - **Week 2**: Python / FastAPI RESTful API
 - **Week 3**: Angular (v19) & Vue.js (v3) Frontend SPAs
+- **Week 4**: Final Full-Stack Capstone (Node.js + Express + SQL Server + Vue 3 + TypeScript)
 
 ---
 
@@ -26,6 +28,11 @@ Assignment Weeks/
 │   ├── CHALLENGES.md       # Frontend Migration & Self-Study Engineering Challenges
 │   ├── AI_PROMPTS.md       # AI Prompt Engineering Log & Code Reviews
 │   └── README.md           # Week 3 Master Documentation Guide
+├── week 4/                 # Final Full-Stack Assignment (Week 4 Capstone)
+│   ├── backend-nodejs/     # Node.js + Express REST API (SQL Server + Windows Auth)
+│   ├── frontend-vuejs/     # Vue 3 + TypeScript + Vite SPA (PrimeVue 4)
+│   ├── docs/               # Business Rules, API Specs, Database ERD, Demo & Manual Guides
+│   └── README.md           # Week 4 Master Documentation Guide
 ├── NODEJS_VS_PYTHON.md     # Node.js vs Python Backend Comparative Guide
 └── README.md               # Repository Overview (This Document)
 ```
@@ -45,7 +52,10 @@ This repository demonstrates end-to-end full-stack engineering principles by imp
 3. **Week 3: Angular & Vue.js Frontend SPAs (`week 3/`)**:
    - **Angular Application (`week 3/angular`)**: Standalone components, RxJS, Angular HttpClient, Reactive Forms, Auth Guards, and HTTP interceptors connected to Week 1 API (`http://localhost:3000/api/v1`).
    - **Vue.js Application (`week 3/vue`)**: Vue 3 Composition API, Vite, TypeScript, Vue Router, Axios interceptors, and Props/Emits connected to Week 2 API (`http://localhost:8000/api/v1`).
-   - Shared visual language, Centered Login cards with Quick Demo login buttons, Approvals list tables, status badges (`PENDING`, `APPROVED`, `REJECTED`), and Create Approval reactive forms.
+
+4. **Week 4: Final Full-Stack System (`week 4/`)**:
+   - Real multi-tier enterprise Approval Workflow Management System connecting **Vue 3 + TypeScript** frontend → **Node.js + Express** REST API → **Microsoft SQL Server** (`ApprovalWorkflowSystem` database via Windows Authentication).
+   - Enforces 7 business scenarios: employee requests, manager department isolation, manager rejection with mandatory comments, resubmission attempt tracking, manager activation/deactivation status requests, and admin transactional approvals.
 
 ---
 
@@ -83,9 +93,27 @@ npm run dev
 # App: http://localhost:5173
 ```
 
+### Week 4 (Final Full-Stack System)
+```bash
+# 1. Setup SQL Server Database (Windows Authentication)
+cd "week 4/backend-nodejs"
+npm install
+npm run db:setup
+
+# 2. Start Backend API
+npm run dev
+# API: http://localhost:3000 | Swagger Docs: http://localhost:3000/api-docs
+
+# 3. Start Frontend Vue 3 SPA
+cd "../frontend-vuejs"
+npm install
+npm run dev
+# App: http://localhost:5173
+```
+
 ---
 
-## 🧪 Automated Testing
+## 🧪 Automated & Manual Verification
 
 ```bash
 # Week 1 API Tests
@@ -99,6 +127,9 @@ cd "week 3/angular" && npm test
 
 # Week 3 Vue.js Tests
 cd "week 3/vue" && npm run test
+
+# Week 4 Manual Verification
+# Follow step-by-step checklist in week 4/docs/MANUAL_VERIFICATION.md
 ```
 
 ---
@@ -109,8 +140,14 @@ cd "week 3/vue" && npm run test
 - 🔵 [Week 2 Readme (FastAPI)](week%202/README.md)
 - 🅰️ [Week 3 Angular Readme](week%203/angular/README.md)
 - 🟢 [Week 3 Vue Readme](week%203/vue/README.md)
-- 📙 [Week 3 Master Guide](week%203/README.md)
+- 🏢 [Week 4 Final Full-Stack Master Guide](week%204/README.md)
+- 📋 [Week 4 Business Rules (BUSINESS_RULES.md)](week%204/docs/BUSINESS_RULES.md)
+- 🔌 [Week 4 REST API Specs (API.md)](week%204/docs/API.md)
+- 🗄️ [Week 4 Database Architecture & ERD (DATABASE.md)](week%204/docs/DATABASE.md)
+- 🎬 [Week 4 Demo Walkthrough Guide (DEMO.md)](week%204/docs/DEMO.md)
+- 🧪 [Week 4 Manual Verification Checklist (MANUAL_VERIFICATION.md)](week%204/docs/MANUAL_VERIFICATION.md)
 - 📊 [Angular vs. Vue Comparative Analysis (ANGULAR_VS_VUE.md)](week%203/ANGULAR_VS_VUE.md)
 - ⚠️ [Week 3 Challenges Guide](week%203/CHALLENGES.md)
 - 🤖 [Week 3 AI Prompt Records](week%203/AI_PROMPTS.md)
 - ⚖️ [Node.js vs. Python Comparison (NODEJS_VS_PYTHON.md)](NODEJS_VS_PYTHON.md)
+
