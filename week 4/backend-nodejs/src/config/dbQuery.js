@@ -57,12 +57,13 @@ function query(sqlStr, params = {}) {
     processedSql = processedSql.replace(regex, sqlVal);
   });
 
-  const isSelect = /^\s*(SELECT|WITH)\b/i.test(processedSql.trim());
+  const isSelect = /\bSELECT\b/i.test(processedSql);
 
   if (isSelect) {
+    const trimmed = processedSql.trim().replace(/;?\s*$/, '');
     const wrappedSql = `
 SET NOCOUNT ON;
-${processedSql} FOR JSON PATH;
+${trimmed} FOR JSON PATH;
 `;
 
     const tempFile = path.join(__dirname, `_temp_query_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.sql`);
@@ -85,7 +86,7 @@ ${processedSql} FOR JSON PATH;
     }
   }
 
-  // INSERT / UPDATE / DELETE
+  // INSERT / UPDATE / DELETE without SELECT
   const tempFile = path.join(__dirname, `_temp_exec_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.sql`);
   const wrappedExec = `
 SET NOCOUNT ON;

@@ -1,81 +1,101 @@
 const { query } = require('../config/dbQuery');
 
 const statusRequestRepository = {
-  async findAll({ page = 1, pageSize = 10, status = '', requestType = '' } = {}) {
-    const pageNum = parseInt(page) || 1;
-    const sizeNum = parseInt(pageSize) || 10;
-    const offset = (pageNum - 1) * sizeNum;
+  async findAll({ status = '', requestType = '', managerId = null, departmentId = null } = {}) {
     let where = 'WHERE 1=1';
     const params = {};
 
-    if (status) { where += ' AND sr.status = @status'; params.status = status; }
-    if (requestType) { where += ' AND sr.requestType = @reqType'; params.reqType = requestType; }
+    if (status) {
+      where += " AND esr.status = @status";
+      params.status = status;
+    }
+    if (requestType) {
+      where += " AND esr.requestType = @requestType";
+      params.requestType = requestType;
+    }
+    if (managerId) {
+      where += " AND esr.managerId = @managerId";
+      params.managerId = managerId;
+    }
+    if (departmentId) {
+      where += " AND emp.departmentId = @departmentId";
+      params.departmentId = departmentId;
+    }
 
-    const countRows = query(`SELECT COUNT(*) AS total FROM EmployeeStatusRequests sr ${where}`, params);
-
-    const items = query(`
-      SELECT sr.*,
-             emp.firstName AS employeeFirstName, emp.lastName AS employeeLastName,
-             emp.email AS employeeEmail, emp.employeeNumber,
-             emp.status AS employeeCurrentStatus,
-             mgr.firstName AS requestedByFirstName, mgr.lastName AS requestedByLastName,
-             d.name AS departmentName, d.code AS departmentCode,
-             ar.requestNumber, ar.status AS approvalStatus
-      FROM EmployeeStatusRequests sr
-      JOIN Users emp ON sr.employeeId = emp.id
-      JOIN Users mgr ON sr.requestedBy = mgr.id
-      JOIN Departments d ON sr.departmentId = d.id
-      LEFT JOIN ApprovalRequests ar ON sr.approvalRequestId = ar.id
+    const sql = `
+      SELECT esr.*,
+             emp.firstName AS employeeFirstName, emp.lastName AS employeeLastName, emp.employeeNumber, emp.email AS employeeEmail,
+             m.firstName AS managerFirstName, m.lastName AS managerLastName, m.email AS managerEmail,
+             adm.firstName AS adminFirstName, adm.lastName AS adminLastName,
+             dept.name AS departmentName
+      FROM EmployeeStatusRequests esr
+      JOIN Users emp ON esr.employeeId = emp.id
+      JOIN Users m ON esr.managerId = m.id
+      LEFT JOIN Users adm ON esr.adminId = adm.id
+      LEFT JOIN Departments dept ON emp.departmentId = dept.id
       ${where}
-      ORDER BY sr.createdAt DESC
-      OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
-    `, { ...params, offset, pageSize });
-
-    return { items, total: countRows[0]?.total || 0 };
+      ORDER BY esr.createdAt DESC
+    `;
+    return query(sql, params);
   },
 
   async findById(id) {
-    const rows = query(`
-      SELECT sr.*,
-             emp.firstName AS employeeFirstName, emp.lastName AS employeeLastName,
-             emp.email AS employeeEmail, emp.employeeNumber,
-             emp.status AS employeeCurrentStatus,
-             mgr.firstName AS requestedByFirstName, mgr.lastName AS requestedByLastName,
-             d.name AS departmentName, d.code AS departmentCode,
-             ar.requestNumber, ar.status AS approvalStatus
-      FROM EmployeeStatusRequests sr
-      JOIN Users emp ON sr.employeeId = emp.id
-      JOIN Users mgr ON sr.requestedBy = mgr.id
-      JOIN Departments d ON sr.departmentId = d.id
-      LEFT JOIN ApprovalRequests ar ON sr.approvalRequestId = ar.id
-      WHERE sr.id = @id
-    `, { id });
+    const sql = `
+      SELECT esr.*,
+             emp.firstName AS employeeFirstName, emp.lastName AS employeeLastName, emp.employeeNumber, emp.email AS employeeEmail, emp.status AS currentEmployeeStatus,
+             m.firstName AS managerFirstName, m.lastName AS managerLastName,
+             adm.firstName AS adminFirstName, adm.lastName AS adminLastName
+      FROM EmployeeStatusRequests esr
+      JOIN Users emp ON esr.employeeId = emp.id
+      JOIN Users m ON esr.managerId = m.id
+      LEFT JOIN Users adm ON esr.adminId = adm.id
+      WHERE esr.id = @id
+    `;
+    const rows = query(sql, { id });
     return rows[0] || null;
   },
 
-  async create({ employeeId, requestedBy, departmentId, requestType, reason, approvalRequestId }) {
-    const rows = query(`
-      INSERT INTO EmployeeStatusRequests (employeeId, requestedBy, departmentId, requestType, reason, approvalRequestId)
-      OUTPUT INSERTED.*
-      VALUES (@empId, @reqBy, @deptId, @reqType, @reason, @aprId)
-    `, { empId: employeeId, reqBy: requestedBy, deptId: departmentId, reqType: requestType, reason: reason || null, aprId: approvalRequestId || null });
+  async hasPendingRequest(employeeId) {
+    const sql = `SELECT TOP 1 1 AS ex FROM EmployeeStatusRequests WHERE employeeId = @employeeId AND status = 'PENDING'`;
+    const rows = query(sql, { employeeId });
+    return rows.length > 0;
+  },
+
+  async create({ employeeId, managerId, requestType, reason }) {
+    const sql = `
+      INSERT INTO EmployeeStatusRequests (employeeId, managerId, requestType, reason, status)
+      VALUES (@employeeId, @managerId, @requestType, @reason, 'PENDING');
+      SELECT TOP 1 * FROM EmployeeStatusRequests WHERE id = SCOPE_IDENTITY();
+    `;
+    const rows = query(sql, { employeeId, managerId, requestType, reason });
     return rows[0];
   },
 
-  async createWithTransaction(tx, data) {
-    tx.add(`
-      INSERT INTO EmployeeStatusRequests (employeeId, requestedBy, departmentId, requestType, reason, approvalRequestId)
-      VALUES (@empId, @reqBy, @deptId, @reqType, @reason, @aprId)
-    `, { empId: data.employeeId, reqBy: data.requestedBy, deptId: data.departmentId, reqType: data.requestType, reason: data.reason || null, aprId: data.approvalRequestId || null });
+  async updateStatus(id, status, adminId = null, adminNotes = null) {
+    let q = 'UPDATE EmployeeStatusRequests SET status = @status, updatedAt = GETUTCDATE()';
+    const params = { id, status };
+    if (adminId) { q += ', adminId = @adminId'; params.adminId = adminId; }
+    if (adminNotes) { q += ', adminNotes = @adminNotes'; params.adminNotes = adminNotes; }
+    q += ' WHERE id = @id; SELECT TOP 1 * FROM EmployeeStatusRequests WHERE id = @id;';
+    const rows = query(q, params);
+    return rows[0] || null;
   },
 
-  async updateStatusWithTransaction(tx, id, newStatus) {
-    tx.add(`UPDATE EmployeeStatusRequests SET status = @status, updatedAt = GETUTCDATE() WHERE id = @id`, { id, status: newStatus });
+  async linkApprovalRequestId(id, approvalRequestId) {
+    query(`UPDATE EmployeeStatusRequests SET approvalRequestId = @approvalRequestId WHERE id = @id`, { id, approvalRequestId });
   },
 
-  async hasPendingRequest(employeeId, requestType) {
-    const rows = query(`SELECT COUNT(*) AS cnt FROM EmployeeStatusRequests WHERE employeeId = @empId AND requestType = @reqType AND status = 'PENDING'`, { empId: employeeId, reqType: requestType });
-    return (rows[0]?.cnt || 0) > 0;
+  async linkApprovalRequestIdWithTransaction(tx, id, approvalRequestId) {
+    tx.add(`UPDATE EmployeeStatusRequests SET approvalRequestId = @approvalRequestId WHERE id = @id`, { id, approvalRequestId });
+  },
+
+  async updateStatusWithTransaction(tx, id, status, adminId = null, adminNotes = null) {
+    let q = 'UPDATE EmployeeStatusRequests SET status = @status, updatedAt = GETUTCDATE()';
+    const params = { id, status };
+    if (adminId) { q += ', adminId = @adminId'; params.adminId = adminId; }
+    if (adminNotes) { q += ', adminNotes = @adminNotes'; params.adminNotes = adminNotes; }
+    q += ' WHERE id = @id';
+    tx.add(q, params);
   },
 };
 

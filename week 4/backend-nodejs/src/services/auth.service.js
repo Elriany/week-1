@@ -23,10 +23,12 @@ const authService = {
       throw new AppError(MSG.LOGIN_FAILED, HTTP.UNAUTHORIZED);
     }
 
+    const userRole = user.role || user.roleName;
+
     const tokenPayload = {
       id: user.id,
       email: user.email,
-      role: user.roleName,
+      role: userRole,
       departmentId: user.departmentId,
     };
 
@@ -41,18 +43,22 @@ const authService = {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.roleName,
+        role: userRole,
         departmentId: user.departmentId,
         departmentName: user.departmentName,
-        departmentCode: user.departmentCode,
         status: user.status,
       },
     };
   },
 
-  async getCurrentUser(userId) {
+  async me(userId) {
     const user = await userRepo.findById(userId);
-    if (!user) throw new AppError(MSG.USER_NOT_FOUND, HTTP.NOT_FOUND);
+
+    if (!user) {
+      throw new AppError(MSG.USER_NOT_FOUND, HTTP.NOT_FOUND);
+    }
+
+    const userRole = user.role || user.roleName;
 
     return {
       id: user.id,
@@ -60,10 +66,9 @@ const authService = {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      role: user.roleName,
+      role: userRole,
       departmentId: user.departmentId,
       departmentName: user.departmentName,
-      departmentCode: user.departmentCode,
       status: user.status,
     };
   },
