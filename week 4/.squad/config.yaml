@@ -1,0 +1,22 @@
+version: 1
+project:
+  name: CrmProject
+  primaryLanguage: typescript
+  projectRoots:
+    - .
+tracker:
+  type: azure
+  workspace: elriany2017
+  project: AZM SQUAD CRM
+naming:
+  includeTrackerId: true
+  globalSequence: true
+agents: []
+planner:
+  enabled: true
+  provider: anthropic
+  mode: auto
+  budget:
+    maxFileReads: 25
+    maxContextBytes: 50000
+    maxDurationSeconds: 180
