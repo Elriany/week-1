@@ -14,8 +14,13 @@ export class ApiError extends Error {
     public readonly code: string,
     public readonly details?: unknown,
     public readonly correlationId?: string,
+    /**
+     * The server's English message. Story 04 recorded that API errors are not
+     * localized; the UI prefers a translation of `code` and falls back to this.
+     */
+    public readonly serverMessage?: string,
   ) {
-    super();
+    super(serverMessage ?? code);
     this.name = 'ApiError';
   }
 }

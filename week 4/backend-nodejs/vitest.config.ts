@@ -16,12 +16,20 @@ export default defineConfig({
         test: {
           name: 'unit',
           include: ['src/**/*.spec.ts'],
+          // setupFiles must be declared per project — a value on the root `test`
+          // block does not propagate into projects.
+          setupFiles: ['./src/__tests__/setup.ts'],
+          environment: 'node',
+          globals: true,
         },
       },
       {
         test: {
           name: 'integration',
           include: ['src/**/*.itest.ts'],
+          setupFiles: ['./src/__tests__/setup.ts'],
+          environment: 'node',
+          globals: true,
           fileParallelism: false,
           testTimeout: 30_000,
         },

@@ -22,3 +22,11 @@ export class ValidationError extends AppError {
 export class ConflictError extends AppError {
   constructor(message: string) { super(409, message, 'CONFLICT'); }
 }
+
+export class UnauthorizedError extends AppError {
+  constructor(message = 'Authentication required') { super(401, message, 'UNAUTHORIZED'); }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message = 'Insufficient permissions') { super(403, message, 'FORBIDDEN'); }
+}

@@ -6,7 +6,7 @@
         <h1>AZM CRM</h1>
       </div>
       <ul class="nav-items">
-        <li v-for="item in navItems" :key="item.name">
+        <li v-for="item in visibleNavItems" :key="item.name">
           <RouterLink
             :to="{ name: item.name }"
             class="nav-link"
@@ -26,22 +26,32 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app.store'
+import { useAuthStore } from '@/stores/auth.store'
 
 interface NavItem {
   name: string
   titleKey: string
   icon: string
+  /** When set, the link is hidden unless the signed-in user holds this permission. */
+  permission?: string
 }
 
 const { t } = useI18n()
 const appStore = useAppStore()
+const auth = useAuthStore()
 const route = useRoute()
 const isMobile = ref(false)
 
 const navItems: NavItem[] = [
   { name: 'dashboard', titleKey: 'nav.dashboard', icon: '📊' },
+  { name: 'users', titleKey: 'nav.users', icon: '👥', permission: 'users.read' },
+  { name: 'roles', titleKey: 'nav.roles', icon: '🔑', permission: 'roles.read' },
   { name: 'about', titleKey: 'nav.about', icon: 'ℹ️' },
 ]
+
+const visibleNavItems = computed(() =>
+  navItems.filter(item => !item.permission || auth.can(item.permission)),
+)
 
 function handleNavClick() {
   if (isMobile.value) {

@@ -13,6 +13,11 @@ const schema = z.object({
   DB_TRUST_SERVER_CERTIFICATE: z.enum(['true', 'false']).transform(v => v === 'true').default('true'),
   DB_ENCRYPT: z.enum(['true', 'false']).transform(v => v === 'true').default('false'),
   DB_ODBC_DRIVER: z.string().default('ODBC Driver 18 for SQL Server'),
+  // Authentication — JWT
+  JWT_SECRET: z.string().min(16).default('dev-only-secret-change-me-in-production'),
+  JWT_ACCESS_EXPIRY: z.string().default('1h'),
+  JWT_REFRESH_EXPIRY: z.string().default('7d'),
+  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(4).max(15).default(10),
 });
 
 const parsed = schema.safeParse(process.env);

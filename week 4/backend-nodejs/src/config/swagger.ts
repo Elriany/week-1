@@ -15,6 +15,16 @@ const options: swaggerJsdoc.Options = {
         description: 'API v1',
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Paste the accessToken returned by POST /auth/login',
+        },
+      },
+    },
   },
   apis: ['./src/modules/**/*.routes.ts'],
 };

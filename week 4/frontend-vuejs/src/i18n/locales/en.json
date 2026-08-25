@@ -10,7 +10,74 @@
   "nav": {
     "dashboard": "Dashboard",
     "about": "About",
+    "users": "Users",
+    "roles": "Roles",
     "notFound": "Not Found"
+  },
+  "auth": {
+    "subtitle": "Sign in to continue",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "errors": {
+      "emailRequired": "Email is required",
+      "passwordRequired": "Password is required",
+      "invalidCredentials": "Invalid email or password",
+      "tooManyAttempts": "Too many attempts. Try again in a few minutes.",
+      "passwordPolicy": "At least 8 characters, with an uppercase letter and a digit"
+    },
+    "demo": {
+      "title": "Demo accounts",
+      "hint": "Development only. Click an account to sign in — password {password}.",
+      "roles": {
+        "admin": "Administrator",
+        "manager": "Manager",
+        "supervisor": "Supervisor",
+        "agent": "Agent",
+        "customer": "Customer"
+      },
+      "scope": {
+        "allBranches": "All branches",
+        "hq": "Headquarters",
+        "riyadh": "Riyadh"
+      }
+    }
+  },
+  "users": {
+    "title": "Users",
+    "addUser": "Add user",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "selectRole": "Select a role",
+    "columns": {
+      "name": "Name",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "empty": {
+      "title": "No users yet",
+      "description": "Users you add will appear here."
+    },
+    "errors": {
+      "emailTaken": "A user with this email already exists"
+    }
+  },
+  "roles": {
+    "title": "Roles and permissions",
+    "noPermissions": "No permissions assigned",
+    "empty": {
+      "title": "No roles found",
+      "description": "Run the database seed to create the default roles."
+    }
   },
   "app": {
     "title": "AZM Customer Support CRM"
@@ -64,6 +131,7 @@
   "errors": {
     "unreachable": "Cannot reach the server",
     "notFound": "Page not found",
+    "forbidden": "You do not have permission to perform this action",
     "loadingHealth": "Failed to load system health",
     "networkError": "Network error"
   },

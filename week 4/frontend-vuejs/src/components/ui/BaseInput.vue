@@ -3,18 +3,21 @@
     <label v-if="label" :for="inputId">{{ label }}</label>
     <input
       :id="inputId"
-      v-model="modelValue"
+      :value="modelValue"
       :type="type"
       :required="required"
       :disabled="disabled"
-      @update:model-value="emit('update:modelValue', $event)"
+      :autocomplete="autocomplete"
+      :dir="dir"
+      :aria-invalid="Boolean(error)"
+      @input="onInput"
     />
     <span v-if="error" class="error">{{ error }}</span>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 
 interface Props {
   modelValue?: string
@@ -23,9 +26,15 @@ interface Props {
   error?: string
   required?: boolean
   disabled?: boolean
+  autocomplete?: string
+  /**
+   * Force text direction for fields whose content is always Latin (email,
+   * password, URLs) so the caret and placeholder sit correctly inside an RTL form.
+   */
+  dir?: 'ltr' | 'rtl' | 'auto'
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   modelValue: '',
   type: 'text',
   required: false,
@@ -36,7 +45,11 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const inputId = computed(() => `input-${Math.random().toString(36).substr(2, 9)}`)
+function onInput(event: Event) {
+  emit('update:modelValue', (event.target as HTMLInputElement).value)
+}
+
+const inputId = computed(() => `input-${useId()}`)
 </script>
 
 <style scoped>

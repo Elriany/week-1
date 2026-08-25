@@ -14,7 +14,7 @@
     "typeorm": "typeorm-ts-node-commonjs -d src/config/data-source.cli.ts",
     "db:create": "tsx src/database/create-database.ts",
     "migration:generate": "npm run typeorm -- migration:generate",
-    "migration:run": "npm run typeorm -- migration:run",
+    "migration:run": "tsx src/database/run-migrations.ts",
     "migration:revert": "npm run typeorm -- migration:revert",
     "db:seed": "tsx src/database/seed.ts",
     "test": "vitest run --project unit",
@@ -33,11 +33,13 @@
   "author": "Algoriza Academy Student",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
     "mssql": "^12.7.0",
     "reflect-metadata": "^0.2.2",
     "swagger-jsdoc": "^6.2.8",
@@ -47,8 +49,10 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.5.0",
     "@types/supertest": "^7.2.1",
     "@types/swagger-jsdoc": "^6.0.4",

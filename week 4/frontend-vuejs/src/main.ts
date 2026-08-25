@@ -7,15 +7,25 @@ import App from './App.vue'
 import router from './router'
 import { i18n } from './i18n'
 import { useLocaleStore } from './stores/locale.store'
+import { useAuthStore } from './stores/auth.store'
 
-const app = createApp(App)
-const pinia = createPinia()
+async function bootstrap() {
+  const app = createApp(App)
+  const pinia = createPinia()
 
-app.use(pinia)
-app.use(i18n)
-app.use(router)
+  app.use(pinia)
+  app.use(i18n)
 
-const localeStore = useLocaleStore()
-localeStore.initialize()
+  // Locale first: applying dir/lang before the first paint avoids an LTR flash.
+  useLocaleStore().initialize()
 
-app.mount('#app')
+  // Restore the session BEFORE the router is installed. The first navigation
+  // guard runs on install, and it must already know whether we are signed in —
+  // otherwise a reload on a protected route redirects to login despite a valid token.
+  await useAuthStore().restore()
+
+  app.use(router)
+  app.mount('#app')
+}
+
+bootstrap()

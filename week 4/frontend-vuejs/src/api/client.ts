@@ -7,6 +7,24 @@ import { ApiError, type ApiErrorBody } from '@/types/api';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
+/**
+ * Supplies the current bearer token. The auth store registers its getter at
+ * startup; keeping it as a callback avoids a circular import between the store
+ * (which calls the client) and the client (which needs the store's token).
+ */
+let tokenProvider: () => string | null = () => null;
+
+/** Invoked when the API rejects a request with 401, so the app can sign out. */
+let unauthorizedHandler: () => void = () => {};
+
+export function setTokenProvider(provider: () => string | null): void {
+  tokenProvider = provider;
+}
+
+export function setUnauthorizedHandler(handler: () => void): void {
+  unauthorizedHandler = handler;
+}
+
 function generateCorrelationId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -25,12 +43,15 @@ export async function apiCall<T = any>(
 ): Promise<T> {
   const correlationId = generateCorrelationId();
 
+  const token = tokenProvider();
+
   const fetchOptions: RequestInit = {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'x-correlation-id': correlationId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   };
@@ -83,11 +104,20 @@ export async function apiCall<T = any>(
   // Handle error responses
   if (!response.ok) {
     const errorBody = data as ApiErrorBody;
+
+    // A 401 means the session is gone — expired, revoked, or the account was
+    // deactivated. Let the app clear its state rather than leaving a dead token
+    // in place for every subsequent request.
+    if (response.status === 401) {
+      unauthorizedHandler();
+    }
+
     throw new ApiError(
       response.status,
       errorBody.error?.code || 'UNKNOWN_ERROR',
       errorBody.error?.details,
       errorBody.correlationId,
+      errorBody.error?.message,
     );
   }
 
@@ -100,5 +130,7 @@ export const api = {
     apiCall<T>(endpoint, { method: 'POST', body }),
   put: <T = any>(endpoint: string, body?: any) =>
     apiCall<T>(endpoint, { method: 'PUT', body }),
+  patch: <T = any>(endpoint: string, body?: any) =>
+    apiCall<T>(endpoint, { method: 'PATCH', body }),
   delete: <T = any>(endpoint: string) => apiCall<T>(endpoint, { method: 'DELETE' }),
 };

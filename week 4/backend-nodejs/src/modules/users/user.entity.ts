@@ -41,6 +41,14 @@ export class User extends BaseEntity {
   @Column({ type: 'nvarchar', length: 200 })
   fullNameAr!: string;
 
+  /**
+   * bcrypt hash. `select: false` keeps it out of every query that does not
+   * explicitly ask for it, so it can never leak through a controller response.
+   * Nullable: a user without a hash can never authenticate (fail closed).
+   */
+  @Column({ type: 'nvarchar', length: 255, nullable: true, select: false })
+  passwordHash?: string | null;
+
   @Column({ type: 'bit', default: true })
   isActive!: boolean;
 }

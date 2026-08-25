@@ -5,3 +5,8 @@ process.env.RATE_LIMIT_WINDOW_MS = '900000'
 process.env.RATE_LIMIT_MAX_REQUESTS = '100'
 process.env.MSSQL_SERVER = process.env.MSSQL_SERVER || 'localhost'
 process.env.MSSQL_DATABASE = process.env.MSSQL_DATABASE || 'CRM'
+process.env.JWT_SECRET = 'test-secret-at-least-sixteen-characters'
+process.env.JWT_ACCESS_EXPIRY = '1h'
+process.env.JWT_REFRESH_EXPIRY = '7d'
+// Keep bcrypt cheap in tests; production uses the env default of 10.
+process.env.BCRYPT_SALT_ROUNDS = '4'

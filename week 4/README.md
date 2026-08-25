@@ -186,6 +186,37 @@ Or on error:
 
 Migrations are the **only** path for schema changes. TypeORM `synchronize` is permanently `false`. New migrations are applied with `npm run migration:run`.
 
+### Authentication and Authorization
+
+Authentication is JWT bearer-token based. `POST /api/v1/auth/login` returns an access token (1 hour) and a refresh token (7 days); every other endpoint requires `Authorization: Bearer <accessToken>`.
+
+Authorization is permission-based. Each user holds exactly one **role**, and each role holds a set of **permission** codes (`users.read`, `tickets.update`, …). Routes declare what they need:
+
+```ts
+router.get('/', authorize(PERMISSIONS.USERS_READ), usersController.list);
+```
+
+The permission catalogue and the role-to-permission mapping live in `src/modules/users/permissions.constants.ts`. Changing that file requires re-running `npm run db:seed` — the seed re-applies the mapping on every run.
+
+Two properties worth knowing:
+
+- **Deactivation is immediate.** `authenticate` re-reads the user on every request instead of trusting the token claims, so setting `isActive = false` invalidates tokens already in circulation. It costs one indexed lookup per request.
+- **Non-administrators are branch-scoped.** A Manager or Supervisor only sees and edits users in their own branch; passing a different `branchId` as a query filter does not widen that. Administrators are unscoped.
+
+### Seeded accounts (development only)
+
+`npm run db:seed` creates one account per role, all with the password `Passw0rd!`. The seed is guarded by `NODE_ENV !== 'production'`.
+
+| Email | Role | Branch |
+|---|---|---|
+| `admin@azm.local` | Administrator | HQ |
+| `manager@azm.local` | Manager | HQ |
+| `supervisor@azm.local` | Supervisor | HQ |
+| `agent@azm.local` | Agent | HQ |
+| `riyadh.agent@azm.local` | Agent | Riyadh |
+
+The Riyadh account exists so branch scoping is observable: sign in as `manager@azm.local` and it is absent from the users list.
+
 ### Localization
 
 Every UI string comes from `src/i18n/locales/en.json` (English) and `ar.json` (Arabic). Backend data with bilingual columns (`nameEn`, `nameAr`) resolve through the `useLocalizedName` composable.
@@ -229,14 +260,19 @@ Database integration tests **automatically skip** when not running on Windows. A
 | Layout does not mirror in Arabic | Physical CSS properties (`left`, `right`, `margin-left`, etc.) crept in. Grep `src/` for these and convert to logical properties (`inset-inline-start`, `margin-inline-end`, etc.). |
 | Frontend shows "backend unreachable" | The backend is not running, or the Vite proxy target does not match its port. Verify backend runs at `:3000` and check `vite.config.ts` proxy target. |
 | `EADDRINUSE` on port 3000 or 5173 | Another process is using the port. Change `PORT` in `.env` or the Vite `server.port` in `vite.config.ts`, or kill the process holding the port. |
+| `401` on every API call right after signing in | The access token expired (1 hour) or the account was deactivated. Sign in again. |
+| `429` from `/auth/login` | The credential rate limiter allows 10 attempts per 15 minutes per IP. Wait, or restart the backend to reset its in-memory counter. |
+| `403` where you expect data | The role lacks the permission the route requires, or the record belongs to another branch. Check `permissions.constants.ts` and the user's `branchId`. |
+| Roles list is empty, or a new permission has no effect | `permissions.constants.ts` changed without re-seeding. Run `npm run db:seed`. |
 
 ---
 
 ## Known Limitations
 
 - **Windows-only:** Local development requires Windows due to Windows Authentication.
-- **No authentication yet:** All endpoints are public. JWT or similar will arrive in a later story.
-- **English-only error messages:** Backend API errors are in English. Localization of error messages is a follow-up.
+- **No password reset:** There is no self-service reset or email verification. An administrator must create accounts.
+- **No token revocation list:** A refresh token stays valid until it expires. Deactivating the account is the way to cut off access, and it takes effect immediately.
+- **English-only error messages:** Backend API errors are in English. The UI translates the cases it recognises by status code and falls back to the server text.
 - **No CI configured:** This is the foundation; CI pipeline is out of scope.
 
 ---
