@@ -2,7 +2,7 @@
 
 This folder is managed by [squad-kit](https://github.com/AzmSquad/squad-kit).
 
-- **Project:** CrmProject
+- **Project:** CRM
 - **Language:** typescript
 - **Tracker:** azure
 

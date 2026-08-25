@@ -1,0 +1,79 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "loading": "جاري التحميل…",
+    "retry": "إعادة محاولة",
+    "back": "رجوع",
+    "close": "إغلاق"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "about": "حول",
+    "notFound": "غير موجود"
+  },
+  "app": {
+    "title": "نظام إدارة دعم العملاء AZM"
+  },
+  "section": {
+    "welcome": "أهلا وسهلا",
+    "features": "الميزات",
+    "quickStats": "الإحصائيات السريعة",
+    "nextSteps": "الخطوات التالية",
+    "about": "حول",
+    "systemHealth": "صحة النظام"
+  },
+  "content": {
+    "welcome": {
+      "description": "مرحبا بك في نظام إدارة دعم العملاء AZM. ابدأ باستكشاف الميزات وإدارة تذاكرك بكفاءة."
+    },
+    "about": {
+      "description": "هذه صفحة حول النظام. تعرض حالة صحة النظام ومعلومات عن التطبيق."
+    },
+    "pageNotFoundDescription": "الصفحة التي تبحث عنها غير موجودة.",
+    "noDataAvailable": "لا توجد بيانات متاحة في الوقت الحالي."
+  },
+  "action": {
+    "getStarted": "ابدأ الآن",
+    "loadData": "تحميل البيانات",
+    "backToDashboard": "العودة إلى لوحة التحكم",
+    "switchLanguage": "تبديل اللغة"
+  },
+  "feature": {
+    "ticketManagement": "إدارة التذاكر",
+    "customerTracking": "تتبع العملاء",
+    "analyticsReports": "التقارير التحليلية",
+    "teamCollaboration": "التعاون الفريقي"
+  },
+  "step": {
+    "setupAccount": "قم بإعداد حسابك",
+    "configureTeam": "قم بإعداد فريقك",
+    "exploreFeatures": "استكشف جميع الميزات"
+  },
+  "status": {
+    "activeTickets": "التذاكر النشطة",
+    "totalUsers": "إجمالي المستخدمين",
+    "loading": "جاري التحميل",
+    "status": "الحالة",
+    "noData": "لا توجد بيانات"
+  },
+  "info": {
+    "timestamp": "الوقت والتاريخ",
+    "environment": "البيئة"
+  },
+  "errors": {
+    "unreachable": "لا يمكن الوصول إلى الخادم",
+    "notFound": "الصفحة غير موجودة",
+    "loadingHealth": "فشل تحميل صحة النظام",
+    "networkError": "خطأ في الشبكة"
+  },
+  "ticket": {
+    "status": {
+      "NEW": "جديد",
+      "OPEN": "مفتوح",
+      "PENDING": "قيد الانتظار",
+      "RESOLVED": "مغلق",
+      "CLOSED": "مغلق نهائياً"
+    }
+  }
+}

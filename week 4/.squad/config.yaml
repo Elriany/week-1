@@ -1,6 +1,6 @@
 version: 1
 project:
-  name: CrmProject
+  name: CRM
   primaryLanguage: typescript
   projectRoots:
     - .
@@ -14,7 +14,7 @@ naming:
 agents: []
 planner:
   enabled: true
-  provider: anthropic
+  provider: google
   mode: auto
   budget:
     maxFileReads: 25

@@ -1,0 +1,7 @@
+process.env.NODE_ENV = 'test'
+process.env.PORT = '3000'
+process.env.LOG_LEVEL = 'error'
+process.env.RATE_LIMIT_WINDOW_MS = '900000'
+process.env.RATE_LIMIT_MAX_REQUESTS = '100'
+process.env.MSSQL_SERVER = process.env.MSSQL_SERVER || 'localhost'
+process.env.MSSQL_DATABASE = process.env.MSSQL_DATABASE || 'CRM'

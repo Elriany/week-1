@@ -1,0 +1,79 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "back": "Back",
+    "close": "Close"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "about": "About",
+    "notFound": "Not Found"
+  },
+  "app": {
+    "title": "AZM Customer Support CRM"
+  },
+  "section": {
+    "welcome": "Welcome",
+    "features": "Features",
+    "quickStats": "Quick Stats",
+    "nextSteps": "Next Steps",
+    "about": "About",
+    "systemHealth": "System Health"
+  },
+  "content": {
+    "welcome": {
+      "description": "Welcome to AZM Customer Support CRM. Get started by exploring the features and managing your tickets efficiently."
+    },
+    "about": {
+      "description": "This is the About page. It displays the system health status and information about the application."
+    },
+    "pageNotFoundDescription": "The page you are looking for does not exist.",
+    "noDataAvailable": "No data available at the moment."
+  },
+  "action": {
+    "getStarted": "Get Started",
+    "loadData": "Load Data",
+    "backToDashboard": "Back to Dashboard",
+    "switchLanguage": "Switch Language"
+  },
+  "feature": {
+    "ticketManagement": "Ticket Management",
+    "customerTracking": "Customer Tracking",
+    "analyticsReports": "Analytics Reports",
+    "teamCollaboration": "Team Collaboration"
+  },
+  "step": {
+    "setupAccount": "Set up your account",
+    "configureTeam": "Configure your team",
+    "exploreFeatures": "Explore all features"
+  },
+  "status": {
+    "activeTickets": "Active Tickets",
+    "totalUsers": "Total Users",
+    "loading": "Loading",
+    "status": "Status",
+    "noData": "No Data"
+  },
+  "info": {
+    "timestamp": "Timestamp",
+    "environment": "Environment"
+  },
+  "errors": {
+    "unreachable": "Cannot reach the server",
+    "notFound": "Page not found",
+    "loadingHealth": "Failed to load system health",
+    "networkError": "Network error"
+  },
+  "ticket": {
+    "status": {
+      "NEW": "New",
+      "OPEN": "Open",
+      "PENDING": "Pending",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed"
+    }
+  }
+}
