@@ -45,6 +45,8 @@ const isMobile = ref(false)
 const navItems: NavItem[] = [
   { name: 'dashboard', titleKey: 'nav.dashboard', icon: '📊' },
   { name: 'users', titleKey: 'nav.users', icon: '👥', permission: 'users.read' },
+  { name: 'customers', titleKey: 'nav.customers', icon: '🧾', permission: 'customers.read' },
+  { name: 'tickets', titleKey: 'nav.tickets', icon: '🎫', permission: 'tickets.read' },
   { name: 'roles', titleKey: 'nav.roles', icon: '🔑', permission: 'roles.read' },
   { name: 'about', titleKey: 'nav.about', icon: 'ℹ️' },
 ]

@@ -45,10 +45,12 @@ export async function apiCall<T = any>(
 
   const token = tokenProvider();
 
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
   const fetchOptions: RequestInit = {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       'Accept': 'application/json',
       'x-correlation-id': correlationId,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -56,7 +58,7 @@ export async function apiCall<T = any>(
     },
   };
 
-  if (options.body && typeof options.body === 'object') {
+  if (options.body && typeof options.body === 'object' && !isFormData) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
@@ -124,6 +126,42 @@ export async function apiCall<T = any>(
   return data as T;
 }
 
+async function downloadFile(endpoint: string): Promise<void> {
+  const token = tokenProvider();
+  const correlationId = generateCorrelationId();
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: 'GET',
+    headers: {
+      'x-correlation-id': correlationId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type');
+    if (contentType?.includes('application/json')) {
+      const data = await response.json() as ApiErrorBody;
+      throw new ApiError(
+        response.status,
+        data.error?.code || 'UNKNOWN_ERROR',
+        data.error?.details,
+        data.correlationId,
+        data.error?.message,
+      );
+    }
+    throw new ApiError(response.status, 'DOWNLOAD_FAILED', undefined, correlationId);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'download';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   get: <T = any>(endpoint: string) => apiCall<T>(endpoint, { method: 'GET' }),
   post: <T = any>(endpoint: string, body?: any) =>
@@ -133,4 +171,7 @@ export const api = {
   patch: <T = any>(endpoint: string, body?: any) =>
     apiCall<T>(endpoint, { method: 'PATCH', body }),
   delete: <T = any>(endpoint: string) => apiCall<T>(endpoint, { method: 'DELETE' }),
+  upload: <T = any>(endpoint: string, formData: FormData) =>
+    apiCall<T>(endpoint, { method: 'POST', body: formData }),
+  download: (endpoint: string) => downloadFile(endpoint),
 };

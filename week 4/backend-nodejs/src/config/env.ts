@@ -18,6 +18,9 @@ const schema = z.object({
   JWT_ACCESS_EXPIRY: z.string().default('1h'),
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(4).max(15).default(10),
+  // File uploads — customer attachments
+  UPLOAD_DIR: z.string().min(1).default('./uploads'),
+  MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(10 * 1024 * 1024),
 });
 
 const parsed = schema.safeParse(process.env);

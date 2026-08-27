@@ -3,3 +3,6 @@
 .squad/stories/**/attachments/
 .squad/.trash/
 # End squad-kit block
+
+# Customer uploads — never commit customer data
+uploads/

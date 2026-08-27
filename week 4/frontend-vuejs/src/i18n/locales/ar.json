@@ -2,15 +2,25 @@
   "common": {
     "save": "حفظ",
     "cancel": "إلغاء",
+    "delete": "حذف",
     "loading": "جاري التحميل…",
     "retry": "إعادة محاولة",
     "back": "رجوع",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "english": "الإنجليزية",
+    "arabic": "العربية",
+    "confirmDelete": "هل تريد بالتأكيد حذف {name}؟",
+    "filters": "المرشحات",
+    "clearAll": "مسح الكل",
+    "note": "ملاحظة",
+    "optional": "اختياري"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
     "about": "حول",
     "users": "المستخدمون",
+    "customers": "العملاء",
+    "tickets": "التذاكر",
     "roles": "الأدوار",
     "notFound": "غير موجود"
   },
@@ -138,10 +148,254 @@
   "ticket": {
     "status": {
       "NEW": "جديد",
-      "OPEN": "مفتوح",
-      "PENDING": "قيد الانتظار",
-      "RESOLVED": "مغلق",
+      "ASSIGNED": "مُسند",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "PENDING_CUSTOMER": "بانتظار العميل",
+      "RESOLVED": "تم الحل",
       "CLOSED": "مغلق نهائياً"
+    }
+  },
+  "customers": {
+    "title": "العملاء",
+    "search": "ابحث عن عملاء",
+    "addCustomer": "إضافة عميل",
+    "activate": "تفعيل",
+    "deactivate": "تعطيل",
+    "delete": "حذف",
+    "confirmDelete": "حذف العميل",
+    "generatedCode": "اترك فارغاً للإنشاء التلقائي",
+    "showing": "عرض {start}–{end} من {total}",
+    "previous": "السابق",
+    "next": "التالي",
+    "columns": {
+      "code": "الرمز",
+      "name": "الاسم",
+      "nameEn": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "language": "اللغة",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "معطل"
+    },
+    "filter": {
+      "all": "جميع الحالات"
+    },
+    "empty": {
+      "title": "لا يوجد عملاء بعد",
+      "description": "سيظهر العملاء الذين تضيفهم هنا."
+    },
+    "noResults": {
+      "title": "لم يتم العثور على عملاء",
+      "description": "حاول تعديل بحثك أو مرشحاتك."
+    },
+    "errors": {
+      "codeTaken": "يوجد عميل برمز هذا بالفعل"
+    },
+    "detail": {
+      "title": "ملف العميل",
+      "edit": "تعديل",
+      "backToList": "العودة إلى العملاء",
+      "notFound": {
+        "title": "العميل غير موجود",
+        "description": "هذا العميل غير موجود أو تم حذفه."
+      }
+    },
+    "contacts": {
+      "title": "جهات الاتصال",
+      "add": "إضافة جهة اتصال",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "primary": "الأساسية",
+      "noPrimary": "لا توجد جهة اتصال أساسية",
+      "confirmDelete": "هل تريد بالتأكيد حذف هذه جهة الاتصال؟",
+      "empty": {
+        "title": "لا توجد جهات اتصال بعد",
+        "description": "أضف جهة اتصال للبدء."
+      }
+    },
+    "notes": {
+      "title": "الملاحظات",
+      "add": "إضافة ملاحظة",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "placeholder": "أضف ملاحظة...",
+      "confirmDelete": "هل تريد بالتأكيد حذف هذه الملاحظة؟",
+      "empty": {
+        "title": "لا توجد ملاحظات بعد",
+        "description": "أضف ملاحظة لتوثيق التفاعلات مع هذا العميل."
+      },
+      "errors": {
+        "notAuthor": "يمكنك فقط تعديل ملاحظاتك الخاصة"
+      }
+    },
+    "attachments": {
+      "title": "المرفقات",
+      "upload": "رفع ملف",
+      "download": "تحميل",
+      "delete": "حذف",
+      "confirmDelete": "هل تريد بالتأكيد حذف هذا الملف؟",
+      "maxSize": "الحد الأقصى لحجم الملف: {size}",
+      "allowedTypes": "الصيغ المدعومة: PDF و PNG و JPEG و GIF و WebP و TXT و CSV وتنسيقات Office و OpenDocument",
+      "columns": {
+        "name": "اسم الملف",
+        "size": "الحجم",
+        "uploader": "تم الرفع بواسطة",
+        "date": "التاريخ",
+        "actions": "الإجراءات"
+      },
+      "empty": {
+        "title": "لا توجد مرفقات بعد",
+        "description": "رفع الملفات لإرفاقها بهذا العميل."
+      },
+      "errors": {
+        "tooLarge": "الملف يتجاوز الحد الأقصى للحجم",
+        "unsupportedType": "نوع الملف غير مدعوم"
+      }
+    },
+    "history": {
+      "title": "سجل التفاعلات",
+      "loadMore": "تحميل المزيد",
+      "kind": {
+        "ticket": "تذكرة",
+        "note": "ملاحظة",
+        "attachment": "مرفق"
+      },
+      "empty": {
+        "title": "لا يوجد سجل تفاعلات",
+        "description": "ستظهر التذاكر والملاحظات والمرفقات هنا."
+      }
+    }
+  },
+  "tickets": {
+    "title": "التذاكر",
+    "search": "ابحث عن تذاكر",
+    "addTicket": "تذكرة جديدة",
+    "showing": "عرض {start}–{end} من {total}",
+    "previous": "السابق",
+    "next": "التالي",
+    "columns": {
+      "number": "رقم التذكرة",
+      "subject": "الموضوع",
+      "status": "الحالة",
+      "priority": "الأولوية",
+      "category": "الفئة",
+      "customer": "العميل",
+      "assignee": "مُسند إلى",
+      "createdAt": "تم الإنشاء",
+      "updatedAt": "آخر تحديث",
+      "actions": "الإجراءات"
+    },
+    "filter": {
+      "allStatuses": "جميع الحالات",
+      "allPriorities": "جميع الأولويات",
+      "allCategories": "جميع الفئات",
+      "allAssignees": "جميع المسندين",
+      "unassigned": "غير مُسند"
+    },
+    "sort": {
+      "asc": "تصاعدي",
+      "desc": "تنازلي"
+    },
+    "empty": {
+      "title": "لا توجد تذاكر بعد",
+      "description": "ستظهر التذاكر التي تنشئها هنا."
+    },
+    "noResults": {
+      "title": "لم يتم العثور على تذاكر",
+      "description": "حاول تعديل بحثك أو مرشحاتك."
+    },
+    "detail": {
+      "title": "ملف التذكرة",
+      "edit": "تعديل",
+      "backToList": "العودة إلى التذاكر",
+      "notFound": {
+        "title": "التذكرة غير موجودة",
+        "description": "هذه التذكرة غير موجودة أو تم حذفها."
+      }
+    },
+    "create": {
+      "title": "إنشاء تذكرة",
+      "selectCustomer": "اختر عميلاً",
+      "selectDepartment": "اختر قسماً",
+      "selectPriority": "اختر أولوية",
+      "selectCategory": "اختر فئة"
+    },
+    "notes": {
+      "title": "الملاحظات",
+      "add": "إضافة ملاحظة",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "placeholder": "أضف ملاحظة...",
+      "internal": "داخلي",
+      "confirmDelete": "هل تريد بالتأكيد حذف هذه الملاحظة؟",
+      "empty": {
+        "title": "لا توجد ملاحظات بعد",
+        "description": "أضف ملاحظة لتوثيق التقدم في هذه التذكرة."
+      },
+      "errors": {
+        "notAuthor": "يمكنك فقط تعديل ملاحظاتك الخاصة"
+      }
+    },
+    "attachments": {
+      "title": "المرفقات",
+      "upload": "رفع ملف",
+      "download": "تحميل",
+      "delete": "حذف",
+      "confirmDelete": "هل تريد بالتأكيد حذف هذا الملف؟",
+      "maxSize": "الحد الأقصى لحجم الملف: {size}",
+      "allowedTypes": "الصيغ المدعومة: PDF و PNG و JPEG و GIF و WebP و TXT و CSV وتنسيقات Office و OpenDocument",
+      "columns": {
+        "name": "اسم الملف",
+        "size": "الحجم",
+        "uploader": "تم الرفع بواسطة",
+        "date": "التاريخ",
+        "actions": "الإجراءات"
+      },
+      "empty": {
+        "title": "لا توجد مرفقات بعد",
+        "description": "رفع الملفات لإرفاقها بهذه التذكرة."
+      },
+      "errors": {
+        "tooLarge": "الملف يتجاوز الحد الأقصى للحجم",
+        "unsupportedType": "نوع الملف غير مدعوم"
+      }
+    },
+    "history": {
+      "title": "الخط الزمني للتذكرة",
+      "loadMore": "تحميل المزيد",
+      "kind": {
+        "audit": "تغيير الحالة",
+        "note": "ملاحظة",
+        "attachment": "مرفق"
+      },
+      "empty": {
+        "title": "لا يوجد سجل",
+        "description": "ستظهر التغييرات والملاحظات والمرفقات هنا."
+      }
+    },
+    "status": {
+      "NEW": "جديد",
+      "ASSIGNED": "مُسند",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "PENDING_CUSTOMER": "بانتظار العميل",
+      "RESOLVED": "تم الحل",
+      "CLOSED": "مغلق نهائياً"
+    },
+    "assignee": {
+      "title": "المسند إليه",
+      "assign": "إسناد",
+      "unassign": "إلغاء الإسناد",
+      "selectAssignee": "اختر مسنداً"
+    },
+    "errors": {
+      "invalidTransition": "هذا التغيير في الحالة غير مسموح",
+      "tooLarge": "الملف يتجاوز الحد الأقصى للحجم",
+      "unsupportedType": "نوع الملف غير مدعوم"
     }
   }
 }

@@ -33,6 +33,7 @@
   "author": "Algoriza Academy Student",
   "license": "ISC",
   "dependencies": {
+    "@types/multer": "^2.2.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -41,6 +42,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.3",
     "mssql": "^12.7.0",
+    "multer": "^2.2.0",
     "reflect-metadata": "^0.2.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",

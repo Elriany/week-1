@@ -68,8 +68,13 @@
       </div>
     </BaseCard>
 
-    <BaseCard v-if="showCreate" :title="t('users.addUser')">
-      <form class="create-form" novalidate @submit.prevent="submitCreate">
+    <!-- Add User Dialog -->
+    <BaseDialog
+      :is-open="showCreate"
+      :title="t('users.addUser')"
+      @close="showCreate = false"
+    >
+      <form id="create-user-form" class="dialog-form" novalidate @submit.prevent="submitCreate">
         <BaseInput v-model="form.fullNameEn" :label="t('users.columns.nameEn')" required />
         <BaseInput v-model="form.fullNameAr" :label="t('users.columns.nameAr')" required />
         <BaseInput v-model="form.email" type="email" dir="ltr" autocomplete="off" :label="t('auth.email')" required />
@@ -94,17 +99,16 @@
         </label>
 
         <p v-if="createError" class="error-text" role="alert">{{ createError }}</p>
-
-        <div class="form-actions">
-          <BaseButton variant="primary" size="md" type="submit" :loading="creating">
-            {{ t('common.save') }}
-          </BaseButton>
-          <BaseButton variant="secondary" size="md" type="button" @click="showCreate = false">
-            {{ t('common.cancel') }}
-          </BaseButton>
-        </div>
       </form>
-    </BaseCard>
+      <template #footer>
+        <BaseButton variant="secondary" size="md" type="button" @click="showCreate = false">
+          {{ t('common.cancel') }}
+        </BaseButton>
+        <BaseButton variant="primary" size="md" type="submit" form="create-user-form" :loading="creating">
+          {{ t('common.save') }}
+        </BaseButton>
+      </template>
+    </BaseDialog>
   </div>
 </template>
 
@@ -121,6 +125,7 @@ import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseSpinner from '@/components/ui/BaseSpinner.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import BaseDialog from '@/components/ui/BaseDialog.vue'
 
 interface UserRow {
   id: string
@@ -316,7 +321,8 @@ td {
   font-family: monospace;
 }
 
-.create-form {
+.create-form,
+.dialog-form {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);

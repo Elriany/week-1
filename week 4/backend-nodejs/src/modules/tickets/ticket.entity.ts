@@ -6,6 +6,7 @@ import { Customer } from '../customers/customer.entity';
 import { User } from '../users/user.entity';
 import { TicketStatus } from './ticketStatus.entity';
 import { TicketPriority } from './ticketPriority.entity';
+import { TicketCategory } from './ticketCategory.entity';
 
 @Entity('Tickets')
 @Index(['ticketNumber'], { unique: true })
@@ -15,6 +16,7 @@ import { TicketPriority } from './ticketPriority.entity';
 @Index(['assignedUserId'])
 @Index(['statusId'])
 @Index(['priorityId'])
+@Index(['categoryId'])
 @Index(['branchId', 'departmentId'])
 export class Ticket extends BaseEntity {
   @Column({ type: 'nvarchar', length: 50, unique: true })
@@ -67,4 +69,11 @@ export class Ticket extends BaseEntity {
 
   @Column({ type: 'nvarchar', length: 4000 })
   description!: string;
+
+  @Column({ type: 'uniqueidentifier', nullable: true })
+  categoryId?: string | null;
+
+  @ManyToOne(() => TicketCategory, { eager: false, onDelete: 'NO ACTION' })
+  @JoinColumn({ name: 'categoryId' })
+  category?: TicketCategory | null;
 }

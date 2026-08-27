@@ -12,6 +12,11 @@ export const PERMISSIONS = {
   TICKETS_READ: 'tickets.read',
   TICKETS_CREATE: 'tickets.create',
   TICKETS_UPDATE: 'tickets.update',
+  TICKETS_ASSIGN: 'tickets.assign',
+  CUSTOMERS_READ: 'customers.read',
+  CUSTOMERS_CREATE: 'customers.create',
+  CUSTOMERS_UPDATE: 'customers.update',
+  CUSTOMERS_DELETE: 'customers.delete',
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -25,6 +30,11 @@ export const PERMISSION_CATALOGUE: Array<{ code: PermissionCode; nameEn: string;
   { code: PERMISSIONS.TICKETS_READ, nameEn: 'View tickets', nameAr: 'عرض التذاكر' },
   { code: PERMISSIONS.TICKETS_CREATE, nameEn: 'Create tickets', nameAr: 'إنشاء التذاكر' },
   { code: PERMISSIONS.TICKETS_UPDATE, nameEn: 'Edit tickets', nameAr: 'تعديل التذاكر' },
+  { code: PERMISSIONS.TICKETS_ASSIGN, nameEn: 'Assign tickets', nameAr: 'إسناد التذاكر' },
+  { code: PERMISSIONS.CUSTOMERS_READ, nameEn: 'View customers', nameAr: 'عرض العملاء' },
+  { code: PERMISSIONS.CUSTOMERS_CREATE, nameEn: 'Create customers', nameAr: 'إنشاء العملاء' },
+  { code: PERMISSIONS.CUSTOMERS_UPDATE, nameEn: 'Edit customers', nameAr: 'تعديل العملاء' },
+  { code: PERMISSIONS.CUSTOMERS_DELETE, nameEn: 'Delete customers', nameAr: 'حذف العملاء' },
 ];
 
 export const ROLE_CODES = {
@@ -48,16 +58,29 @@ export const ROLE_PERMISSION_MAP: Record<RoleCode, PermissionCode[]> = {
     PERMISSIONS.TICKETS_READ,
     PERMISSIONS.TICKETS_CREATE,
     PERMISSIONS.TICKETS_UPDATE,
+    PERMISSIONS.TICKETS_ASSIGN,
+    PERMISSIONS.CUSTOMERS_READ,
+    PERMISSIONS.CUSTOMERS_CREATE,
+    PERMISSIONS.CUSTOMERS_UPDATE,
+    PERMISSIONS.CUSTOMERS_DELETE,
   ],
   [ROLE_CODES.SUPERVISOR]: [
     PERMISSIONS.USERS_READ,
     PERMISSIONS.TICKETS_READ,
     PERMISSIONS.TICKETS_CREATE,
     PERMISSIONS.TICKETS_UPDATE,
+    PERMISSIONS.TICKETS_ASSIGN,
+    PERMISSIONS.CUSTOMERS_READ,
+    PERMISSIONS.CUSTOMERS_CREATE,
+    PERMISSIONS.CUSTOMERS_UPDATE,
   ],
   [ROLE_CODES.AGENT]: [
     PERMISSIONS.TICKETS_READ,
+    PERMISSIONS.TICKETS_CREATE,
     PERMISSIONS.TICKETS_UPDATE,
+    PERMISSIONS.CUSTOMERS_READ,
+    PERMISSIONS.CUSTOMERS_CREATE,
+    PERMISSIONS.CUSTOMERS_UPDATE,
   ],
   [ROLE_CODES.CUSTOMER]: [
     PERMISSIONS.TICKETS_READ,

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force -ErrorAction SilentlyContinue)",
+      "Bash(curl -s http://localhost:3000/api/v1/tickets/meta)",
+      "Bash(cat /tmp/backend.log 2>/dev/null | tail -20)",
+      "Read(//tmp/**)",
+      "Bash(curl -v http://localhost:3000/api/v1/health)"
+    ]
+  }
+}

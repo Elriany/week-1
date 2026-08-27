@@ -4,19 +4,29 @@ import { logger } from '../common/utils/logger';
 import { env } from '../config/env';
 import { TicketStatus } from '../modules/tickets/ticketStatus.entity';
 import { TicketPriority } from '../modules/tickets/ticketPriority.entity';
+import { TicketCategory } from '../modules/tickets/ticketCategory.entity';
 import { Role } from '../modules/users/role.entity';
 import { Permission } from '../modules/users/permission.entity';
 import { Branch } from '../modules/branches/branch.entity';
 import { Department } from '../modules/departments/department.entity';
 import { User } from '../modules/users/user.entity';
 import { Customer } from '../modules/customers/customer.entity';
+import { CustomerContact } from '../modules/customers/customerContact.entity';
+import { CustomerNote } from '../modules/customers/customerNote.entity';
+import { Ticket } from '../modules/tickets/ticket.entity';
+import { TicketComment } from '../modules/tickets/ticketComment.entity';
 import {
   PERMISSION_CATALOGUE,
   ROLE_CODES,
   ROLE_PERMISSION_MAP,
   type RoleCode,
 } from '../modules/users/permissions.constants';
+import {
+  TICKET_STATUS_CATALOGUE,
+  TICKET_CATEGORY_CATALOGUE,
+} from '../modules/tickets/ticket.constants';
 import { hashPassword } from '../modules/users/users.service';
+import { transitionTicket, assignTicket } from '../modules/tickets/tickets.service';
 
 async function seed() {
   try {
@@ -26,20 +36,21 @@ async function seed() {
     }
 
     // Reference data (always seeded)
-    const statuses = [
-      { code: 'NEW', nameEn: 'New', nameAr: 'جديد', sortOrder: 0 },
-      { code: 'OPEN', nameEn: 'Open', nameAr: 'مفتوح', sortOrder: 1 },
-      { code: 'PENDING', nameEn: 'Pending', nameAr: 'قيد الانتظار', sortOrder: 2 },
-      { code: 'RESOLVED', nameEn: 'Resolved', nameAr: 'تم الحل', sortOrder: 3 },
-      { code: 'CLOSED', nameEn: 'Closed', nameAr: 'مغلق', sortOrder: 4 },
-    ];
-
-    for (const status of statuses) {
+    for (const status of TICKET_STATUS_CATALOGUE) {
       const existing = await AppDataSource.getRepository(TicketStatus).findOne({ where: { code: status.code } });
       if (!existing) {
         const newStatus = AppDataSource.getRepository(TicketStatus).create(status);
         await AppDataSource.getRepository(TicketStatus).save(newStatus);
         logger.info(`Seeded TicketStatus: ${status.code}`);
+      }
+    }
+
+    for (const category of TICKET_CATEGORY_CATALOGUE) {
+      const existing = await AppDataSource.getRepository(TicketCategory).findOne({ where: { code: category.code } });
+      if (!existing) {
+        const newCategory = AppDataSource.getRepository(TicketCategory).create(category);
+        await AppDataSource.getRepository(TicketCategory).save(newCategory);
+        logger.info(`Seeded TicketCategory: ${category.code}`);
       }
     }
 
@@ -200,22 +211,364 @@ async function seed() {
         logger.info(`Seeded User: ${demo.email}`);
       }
 
-      // Seed customers
-      const customerExisting = await AppDataSource.getRepository(Customer).findOne({
-        where: { code: 'CUST001' },
-      });
-      if (!customerExisting) {
-        const customer = AppDataSource.getRepository(Customer).create({
-          branchId: branch1.id,
-          code: 'CUST001',
-          fullNameEn: 'John Smith',
-          fullNameAr: 'جون سميث',
-          email: 'john@example.com',
-          phone: '+966501234567',
-          preferredLanguage: 'en',
+      // Seed customers — varied set to exercise search and pagination
+      const demoCustomers = [
+        { code: 'CUST001', fullNameEn: 'John Smith', fullNameAr: 'جون سميث', email: 'john@example.com', phone: '+966501234567', branchId: branch1.id, isActive: true },
+        { code: 'CUST002', fullNameEn: 'Alice Johnson', fullNameAr: 'أليس جونسون', email: 'alice@example.com', phone: '+966502345678', branchId: branch1.id, isActive: true },
+        { code: 'CUST003', fullNameEn: 'Bob Williams', fullNameAr: 'محمد علي', email: null, phone: '+966503456789', branchId: branch1.id, isActive: true },
+        { code: 'CUST004', fullNameEn: 'Carol Davis', fullNameAr: 'كارول ديفيس', email: 'carol@example.com', phone: null, branchId: branch1.id, isActive: true },
+        { code: 'CUST005', fullNameEn: 'David Miller', fullNameAr: 'داود ميلر', email: 'david@example.com', phone: '+966504567890', branchId: branch1.id, isActive: false },
+        { code: 'CUST006', fullNameEn: 'Eve Brown', fullNameAr: 'إيف براون', email: 'eve@example.com', phone: '+966505678901', branchId: branch2.id, isActive: true },
+        { code: 'CUST007', fullNameEn: 'Frank Green', fullNameAr: 'فرانك أخضر', email: 'frank@example.com', phone: '+966506789012', branchId: branch2.id, isActive: true },
+        { code: 'CUST008', fullNameEn: 'Grace Lee', fullNameAr: 'غريس لي', email: 'grace@example.com', phone: '+966507890123', branchId: branch1.id, isActive: true },
+      ];
+
+      const savedCustomers = new Map<string, Customer>();
+
+      for (const customerData of demoCustomers) {
+        let customer = await AppDataSource.getRepository(Customer).findOne({
+          where: { code: customerData.code },
         });
-        await AppDataSource.getRepository(Customer).save(customer);
-        logger.info('Seeded Customer: CUST001');
+        if (!customer) {
+          customer = AppDataSource.getRepository(Customer).create(customerData);
+          customer = await AppDataSource.getRepository(Customer).save(customer);
+          logger.info(`Seeded Customer: ${customerData.code}`);
+        }
+        savedCustomers.set(customerData.code, customer);
+      }
+
+      // Seed contacts and notes for the first two customers
+      const cust001 = savedCustomers.get('CUST001');
+      const cust002 = savedCustomers.get('CUST002');
+      const cust003 = savedCustomers.get('CUST003');
+      const adminUserObj = await AppDataSource.getRepository(User).findOne({ where: { email: 'admin@azm.local' } });
+
+      if (cust001 && adminUserObj) {
+        // Contacts for CUST001
+        const contact1 = await AppDataSource.getRepository(CustomerContact).findOne({
+          where: { customerId: cust001.id, fullNameEn: 'Jane Smith' },
+        });
+        if (!contact1) {
+          await AppDataSource.getRepository(CustomerContact).save(
+            AppDataSource.getRepository(CustomerContact).create({
+              customerId: cust001.id,
+              fullNameEn: 'Jane Smith',
+              fullNameAr: 'جين سميث',
+              jobTitle: 'Finance Manager',
+              email: 'jane.smith@example.com',
+              phone: '+966509876543',
+              isPrimary: true,
+            }),
+          );
+          logger.info('Seeded Contact: Jane Smith (CUST001, primary)');
+        }
+
+        const contact2 = await AppDataSource.getRepository(CustomerContact).findOne({
+          where: { customerId: cust001.id, fullNameEn: 'Robert Smith' },
+        });
+        if (!contact2) {
+          await AppDataSource.getRepository(CustomerContact).save(
+            AppDataSource.getRepository(CustomerContact).create({
+              customerId: cust001.id,
+              fullNameEn: 'Robert Smith',
+              fullNameAr: 'روبرت سميث',
+              jobTitle: null,
+              email: null,
+              phone: '+966505555555',
+              isPrimary: false,
+            }),
+          );
+          logger.info('Seeded Contact: Robert Smith (CUST001, secondary)');
+        }
+
+        // Notes for CUST001
+        const note1 = await AppDataSource.getRepository(CustomerNote).findOne({
+          where: { customerId: cust001.id, body: 'Initial contact established' },
+        });
+        if (!note1) {
+          await AppDataSource.getRepository(CustomerNote).save(
+            AppDataSource.getRepository(CustomerNote).create({
+              customerId: cust001.id,
+              authorUserId: adminUserObj.id,
+              body: 'Initial contact established. Customer interested in premium services.',
+            }),
+          );
+          logger.info('Seeded Note: CUST001 note 1');
+        }
+
+        const note2 = await AppDataSource.getRepository(CustomerNote).findOne({
+          where: { customerId: cust001.id, body: 'Follow-up call scheduled' },
+        });
+        if (!note2) {
+          await AppDataSource.getRepository(CustomerNote).save(
+            AppDataSource.getRepository(CustomerNote).create({
+              customerId: cust001.id,
+              authorUserId: adminUserObj.id,
+              body: 'Follow-up call scheduled for next week.',
+            }),
+          );
+          logger.info('Seeded Note: CUST001 note 2');
+        }
+      }
+
+      if (cust002 && adminUserObj) {
+        // Contacts for CUST002
+        const contact1 = await AppDataSource.getRepository(CustomerContact).findOne({
+          where: { customerId: cust002.id, fullNameEn: 'Alice Johnson' },
+        });
+        if (!contact1) {
+          await AppDataSource.getRepository(CustomerContact).save(
+            AppDataSource.getRepository(CustomerContact).create({
+              customerId: cust002.id,
+              fullNameEn: 'Alice Johnson',
+              fullNameAr: 'أليس جونسون',
+              jobTitle: 'Operations Lead',
+              email: 'alice.johnson@example.com',
+              phone: null,
+              isPrimary: true,
+            }),
+          );
+          logger.info('Seeded Contact: Alice Johnson (CUST002, primary)');
+        }
+
+        const contact2 = await AppDataSource.getRepository(CustomerContact).findOne({
+          where: { customerId: cust002.id, fullNameEn: 'Bob Johnson' },
+        });
+        if (!contact2) {
+          await AppDataSource.getRepository(CustomerContact).save(
+            AppDataSource.getRepository(CustomerContact).create({
+              customerId: cust002.id,
+              fullNameEn: 'Bob Johnson',
+              fullNameAr: 'بوب جونسون',
+              jobTitle: 'IT Director',
+              email: 'bob.johnson@example.com',
+              phone: '+966508888888',
+              isPrimary: false,
+            }),
+          );
+          logger.info('Seeded Contact: Bob Johnson (CUST002, secondary)');
+        }
+
+        // Notes for CUST002
+        const note1 = await AppDataSource.getRepository(CustomerNote).findOne({
+          where: { customerId: cust002.id, body: 'Major account with high transaction volume' },
+        });
+        if (!note1) {
+          await AppDataSource.getRepository(CustomerNote).save(
+            AppDataSource.getRepository(CustomerNote).create({
+              customerId: cust002.id,
+              authorUserId: adminUserObj.id,
+              body: 'Major account with high transaction volume. Special pricing negotiated.',
+            }),
+          );
+          logger.info('Seeded Note: CUST002 note 1');
+        }
+
+        const note2 = await AppDataSource.getRepository(CustomerNote).findOne({
+          where: { customerId: cust002.id, body: 'Monthly review meeting completed' },
+        });
+        if (!note2) {
+          await AppDataSource.getRepository(CustomerNote).save(
+            AppDataSource.getRepository(CustomerNote).create({
+              customerId: cust002.id,
+              authorUserId: adminUserObj.id,
+              body: 'Monthly review meeting completed. All KPIs on track.',
+            }),
+          );
+          logger.info('Seeded Note: CUST002 note 2');
+        }
+      }
+
+      // Seed demo tickets and walk through lifecycle
+      const newStatus = await AppDataSource.getRepository(TicketStatus).findOne({ where: { code: 'NEW' } });
+      const inProgressStatus = await AppDataSource.getRepository(TicketStatus).findOne({ where: { code: 'IN_PROGRESS' } });
+      const pendingCustomerStatus = await AppDataSource.getRepository(TicketStatus).findOne({ where: { code: 'PENDING_CUSTOMER' } });
+      const resolvedStatus = await AppDataSource.getRepository(TicketStatus).findOne({ where: { code: 'RESOLVED' } });
+      const highPriority = await AppDataSource.getRepository(TicketPriority).findOne({ where: { code: 'HIGH' } });
+      const lowPriority = await AppDataSource.getRepository(TicketPriority).findOne({ where: { code: 'LOW' } });
+      const technicalCategory = await AppDataSource.getRepository(TicketCategory).findOne({ where: { code: 'TECHNICAL' } });
+      const billingCategory = await AppDataSource.getRepository(TicketCategory).findOne({ where: { code: 'BILLING' } });
+      const agentUser = await AppDataSource.getRepository(User).findOne({ where: { email: 'agent@azm.local' } });
+
+      if (newStatus && highPriority && technicalCategory && cust001 && cust002 && cust003 && lowPriority && billingCategory) {
+        const tickets = [
+          {
+            ticketNumber: 'TKT-2026-00001',
+            branchId: branch1.id,
+            departmentId: dept1.id,
+            customerId: cust001.id,
+            assignedUserId: null,
+            statusId: newStatus.id,
+            priorityId: highPriority.id,
+            categoryId: technicalCategory.id,
+            subject: 'API Integration Issue',
+            description: 'Customer reports authentication failures when integrating with our API endpoint.',
+          },
+          {
+            ticketNumber: 'TKT-2026-00002',
+            branchId: branch1.id,
+            departmentId: dept1.id,
+            customerId: cust002.id,
+            assignedUserId: null,
+            statusId: newStatus.id,
+            priorityId: lowPriority.id,
+            categoryId: billingCategory.id,
+            subject: 'Invoice Discrepancy',
+            description: 'Previous month invoice shows incorrect item count on line 5.',
+          },
+          {
+            ticketNumber: 'TKT-2026-00003',
+            branchId: branch1.id,
+            departmentId: dept1.id,
+            customerId: cust001.id,
+            assignedUserId: null,
+            statusId: newStatus.id,
+            priorityId: highPriority.id,
+            categoryId: technicalCategory.id,
+            subject: 'Database Connection Timeout',
+            description: 'Experiencing intermittent database connection timeouts during peak hours.',
+          },
+          {
+            ticketNumber: 'TKT-2026-00004',
+            branchId: branch2.id,
+            departmentId: dept2.id,
+            customerId: cust003.id,
+            assignedUserId: null,
+            statusId: newStatus.id,
+            priorityId: lowPriority.id,
+            categoryId: technicalCategory.id,
+            subject: 'Documentation Request',
+            description: 'Need updated API documentation for v3.0 endpoints.',
+          },
+          {
+            ticketNumber: 'TKT-2026-00005',
+            branchId: branch1.id,
+            departmentId: dept1.id,
+            customerId: cust002.id,
+            assignedUserId: null,
+            statusId: resolvedStatus?.id || newStatus.id,
+            priorityId: highPriority.id,
+            categoryId: technicalCategory.id,
+            subject: 'Performance Optimization',
+            description: 'Report slow query performance on the customer dashboard.',
+          },
+          {
+            ticketNumber: 'TKT-2026-00006',
+            branchId: branch1.id,
+            departmentId: dept1.id,
+            customerId: cust001.id,
+            assignedUserId: null,
+            statusId: newStatus.id,
+            priorityId: lowPriority.id,
+            categoryId: technicalCategory.id,
+            subject: 'Feature Request: Export to Excel',
+            description: 'Customers asking for ability to export reports to Excel format.',
+          },
+        ];
+
+        for (const ticket of tickets) {
+          const existing = await AppDataSource.getRepository(Ticket).findOne({
+            where: { ticketNumber: ticket.ticketNumber },
+          });
+          if (!existing) {
+            await AppDataSource.getRepository(Ticket).save(
+              AppDataSource.getRepository(Ticket).create(ticket),
+            );
+            logger.info(`Seeded Ticket: ${ticket.ticketNumber}`);
+          }
+        }
+
+        // Demonstrate ticket lifecycle with service functions
+        // Ticket 1: Assign then transition to IN_PROGRESS then PENDING_CUSTOMER
+        if (agentUser && adminUserObj) {
+          const ticket1 = await AppDataSource.getRepository(Ticket).findOne({
+            where: { ticketNumber: 'TKT-2026-00001' },
+          });
+
+          if (ticket1) {
+            try {
+              // Assign to agent (auto-promotes NEW → ASSIGNED)
+              await assignTicket(ticket1.id, agentUser.id, adminUserObj.id, branch1.id, 'Assigning to support team');
+              logger.info('Ticket TKT-2026-00001: Assigned to agent (auto-promoted to ASSIGNED)');
+
+              // Transition to IN_PROGRESS
+              if (inProgressStatus) {
+                await transitionTicket(ticket1.id, inProgressStatus.id, adminUserObj.id, branch1.id, 'Investigating issue');
+                logger.info('Ticket TKT-2026-00001: Transitioned to IN_PROGRESS');
+              }
+
+              // Transition to PENDING_CUSTOMER
+              if (pendingCustomerStatus) {
+                await transitionTicket(ticket1.id, pendingCustomerStatus.id, adminUserObj.id, branch1.id, 'Waiting for customer response');
+                logger.info('Ticket TKT-2026-00001: Transitioned to PENDING_CUSTOMER');
+              }
+
+              // Add internal and public notes to ticket 1
+              const internalNote = await AppDataSource.getRepository(TicketComment).findOne({
+                where: { ticketId: ticket1.id, body: 'Customer reports authentication failures. Investigating OAuth integration.' },
+              });
+              if (!internalNote) {
+                await AppDataSource.getRepository(TicketComment).save(
+                  AppDataSource.getRepository(TicketComment).create({
+                    ticketId: ticket1.id,
+                    authorUserId: adminUserObj.id,
+                    body: 'Customer reports authentication failures. Investigating OAuth integration.',
+                    isInternal: true,
+                  }),
+                );
+                logger.info('Seeded internal note for Ticket TKT-2026-00001');
+              }
+
+              const publicNote = await AppDataSource.getRepository(TicketComment).findOne({
+                where: { ticketId: ticket1.id, body: 'We are investigating the authentication issue and will update you soon.' },
+              });
+              if (!publicNote) {
+                await AppDataSource.getRepository(TicketComment).save(
+                  AppDataSource.getRepository(TicketComment).create({
+                    ticketId: ticket1.id,
+                    authorUserId: adminUserObj.id,
+                    body: 'We are investigating the authentication issue and will update you soon.',
+                    isInternal: false,
+                  }),
+                );
+                logger.info('Seeded public note for Ticket TKT-2026-00001');
+              }
+            } catch (err) {
+              if (err instanceof Error) {
+                logger.warn(`Ticket TKT-2026-00001 lifecycle demo: ${err.message}`);
+              }
+            }
+          }
+
+          // Ticket 3: Assign then transition to IN_PROGRESS then RESOLVED
+          const ticket3 = await AppDataSource.getRepository(Ticket).findOne({
+            where: { ticketNumber: 'TKT-2026-00003' },
+          });
+
+          if (ticket3) {
+            try {
+              // Assign to agent (auto-promotes NEW → ASSIGNED)
+              await assignTicket(ticket3.id, agentUser.id, adminUserObj.id, branch1.id, 'Assigned for investigation');
+              logger.info('Ticket TKT-2026-00003: Assigned to agent (auto-promoted to ASSIGNED)');
+
+              // Transition to IN_PROGRESS
+              if (inProgressStatus) {
+                await transitionTicket(ticket3.id, inProgressStatus.id, adminUserObj.id, branch1.id, 'Working on fix');
+                logger.info('Ticket TKT-2026-00003: Transitioned to IN_PROGRESS');
+              }
+
+              // Transition to RESOLVED
+              if (resolvedStatus) {
+                await transitionTicket(ticket3.id, resolvedStatus.id, adminUserObj.id, branch1.id, 'Applied database connection pooling');
+                logger.info('Ticket TKT-2026-00003: Transitioned to RESOLVED');
+              }
+            } catch (err) {
+              if (err instanceof Error) {
+                logger.warn(`Ticket TKT-2026-00003 lifecycle demo: ${err.message}`);
+              }
+            }
+          }
+        }
       }
 
       logger.info('Demo data seeded successfully');

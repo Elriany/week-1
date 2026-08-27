@@ -1,0 +1,97 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import type { Express } from 'express';
+import { AppDataSource } from '../../config/data-source';
+import { NotFoundError } from '../../common/errors/AppError';
+import { TicketAttachment } from './ticketAttachment.entity';
+import { ownerDir } from '../../common/uploads/attachments.upload';
+
+export interface PublicTicketAttachment {
+  id: string;
+  ticketId: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: string;
+  createdAt: Date;
+  uploadedBy: { id: string; fullNameEn: string; fullNameAr: string } | null;
+}
+
+export function toPublicAttachment(
+  a: TicketAttachment & { uploadedBy?: { id: string; fullNameEn: string; fullNameAr: string } | null },
+): PublicTicketAttachment {
+  return {
+    id: a.id,
+    ticketId: a.ticketId,
+    originalName: a.originalName,
+    mimeType: a.mimeType,
+    sizeBytes: a.sizeBytes,
+    createdAt: a.createdAt,
+    uploadedBy: a.uploadedBy ?? null,
+  };
+}
+
+const attachments = () => AppDataSource.getRepository(TicketAttachment);
+
+export async function listAttachments(ticketId: string): Promise<PublicTicketAttachment[]> {
+  const rows = await attachments()
+    .createQueryBuilder('a')
+    .leftJoinAndSelect('a.uploadedBy', 'uploader', 'uploader.id = a.uploadedByUserId')
+    .select([
+      'a.id',
+      'a.ticketId',
+      'a.originalName',
+      'a.mimeType',
+      'a.sizeBytes',
+      'a.createdAt',
+      'uploader.id',
+      'uploader.fullNameEn',
+      'uploader.fullNameAr',
+    ])
+    .where('a.ticketId = :ticketId', { ticketId })
+    .orderBy('a.createdAt', 'DESC')
+    .getMany();
+
+  return rows.map(r => toPublicAttachment(r as any));
+}
+
+export async function createAttachment(
+  ticketId: string,
+  uploadedByUserId: string,
+  file: Express.Multer.File,
+): Promise<PublicTicketAttachment> {
+  const row = attachments().create({
+    ticketId,
+    uploadedByUserId,
+    originalName: file.originalname,
+    storedName: file.filename,
+    mimeType: file.mimetype,
+    sizeBytes: String(file.size),
+  });
+
+  try {
+    await attachments().save(row);
+  } catch (err) {
+    await fs.promises.unlink(file.path).catch(() => {});
+    throw err;
+  }
+
+  return toPublicAttachment({
+    ...row,
+    uploadedBy: { id: uploadedByUserId, fullNameEn: '', fullNameAr: '' },
+  } as TicketAttachment & { uploadedBy: { id: string; fullNameEn: string; fullNameAr: string } });
+}
+
+export async function findAttachmentById(id: string): Promise<TicketAttachment> {
+  const attachment = await attachments().findOne({ where: { id } });
+  if (!attachment) throw new NotFoundError('Attachment');
+  return attachment;
+}
+
+export async function softDeleteAttachment(id: string): Promise<void> {
+  await findAttachmentById(id);
+  await attachments().softDelete(id);
+}
+
+export async function getAttachmentStoragePath(ticketId: string, attachment: TicketAttachment): Promise<string> {
+  return path.resolve(ownerDir('tickets', ticketId), attachment.storedName);
+}

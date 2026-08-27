@@ -30,4 +30,7 @@ export class Customer extends BaseEntity {
 
   @Column({ type: 'nvarchar', length: 2, default: 'en' })
   preferredLanguage!: string;
+
+  @Column({ type: 'bit', default: true })
+  isActive!: boolean;
 }

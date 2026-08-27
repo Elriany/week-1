@@ -69,4 +69,68 @@ describe('role permission map', () => {
       }
     }
   });
+
+  it('includes all four customer permissions in the catalogue', () => {
+    const catalogued = new Set(PERMISSION_CATALOGUE.map(p => p.code));
+    expect(catalogued.has(PERMISSIONS.CUSTOMERS_READ)).toBe(true);
+    expect(catalogued.has(PERMISSIONS.CUSTOMERS_CREATE)).toBe(true);
+    expect(catalogued.has(PERMISSIONS.CUSTOMERS_UPDATE)).toBe(true);
+    expect(catalogued.has(PERMISSIONS.CUSTOMERS_DELETE)).toBe(true);
+  });
+
+  it('grants Admin all customer permissions', () => {
+    const adminPerms = ROLE_PERMISSION_MAP[ROLE_CODES.ADMIN];
+    expect(adminPerms).toContain(PERMISSIONS.CUSTOMERS_READ);
+    expect(adminPerms).toContain(PERMISSIONS.CUSTOMERS_CREATE);
+    expect(adminPerms).toContain(PERMISSIONS.CUSTOMERS_UPDATE);
+    expect(adminPerms).toContain(PERMISSIONS.CUSTOMERS_DELETE);
+  });
+
+  it('grants Agent create but not delete for customers', () => {
+    const agentPerms = ROLE_PERMISSION_MAP[ROLE_CODES.AGENT];
+    expect(agentPerms).toContain(PERMISSIONS.CUSTOMERS_CREATE);
+    expect(agentPerms).not.toContain(PERMISSIONS.CUSTOMERS_DELETE);
+  });
+
+  it('does not grant Customer any customer permissions', () => {
+    const customerPerms = ROLE_PERMISSION_MAP[ROLE_CODES.CUSTOMER];
+    expect(customerPerms).not.toContain(PERMISSIONS.CUSTOMERS_READ);
+    expect(customerPerms).not.toContain(PERMISSIONS.CUSTOMERS_CREATE);
+    expect(customerPerms).not.toContain(PERMISSIONS.CUSTOMERS_UPDATE);
+    expect(customerPerms).not.toContain(PERMISSIONS.CUSTOMERS_DELETE);
+  });
+
+  it('includes all four ticket permissions in the catalogue', () => {
+    const catalogued = new Set(PERMISSION_CATALOGUE.map(p => p.code));
+    expect(catalogued.has(PERMISSIONS.TICKETS_READ)).toBe(true);
+    expect(catalogued.has(PERMISSIONS.TICKETS_CREATE)).toBe(true);
+    expect(catalogued.has(PERMISSIONS.TICKETS_UPDATE)).toBe(true);
+    expect(catalogued.has(PERMISSIONS.TICKETS_ASSIGN)).toBe(true);
+  });
+
+  it('grants Agent create but not assign for tickets', () => {
+    const agentPerms = ROLE_PERMISSION_MAP[ROLE_CODES.AGENT];
+    expect(agentPerms).toContain(PERMISSIONS.TICKETS_CREATE);
+    expect(agentPerms).not.toContain(PERMISSIONS.TICKETS_ASSIGN);
+  });
+
+  it('grants Manager and Supervisor assign permission', () => {
+    const managerPerms = ROLE_PERMISSION_MAP[ROLE_CODES.MANAGER];
+    const supervisorPerms = ROLE_PERMISSION_MAP[ROLE_CODES.SUPERVISOR];
+    expect(managerPerms).toContain(PERMISSIONS.TICKETS_ASSIGN);
+    expect(supervisorPerms).toContain(PERMISSIONS.TICKETS_ASSIGN);
+  });
+
+  it('does not grant Agent assign permission', () => {
+    const agentPerms = ROLE_PERMISSION_MAP[ROLE_CODES.AGENT];
+    expect(agentPerms).not.toContain(PERMISSIONS.TICKETS_ASSIGN);
+  });
+
+  it('grants Customer read-only access to tickets', () => {
+    const customerPerms = ROLE_PERMISSION_MAP[ROLE_CODES.CUSTOMER];
+    expect(customerPerms).toContain(PERMISSIONS.TICKETS_READ);
+    expect(customerPerms).not.toContain(PERMISSIONS.TICKETS_CREATE);
+    expect(customerPerms).not.toContain(PERMISSIONS.TICKETS_UPDATE);
+    expect(customerPerms).not.toContain(PERMISSIONS.TICKETS_ASSIGN);
+  });
 });

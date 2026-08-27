@@ -36,6 +36,30 @@ const routes: RouteRecordRaw[] = [
         meta: { titleKey: 'nav.users', permission: 'users.read' },
       },
       {
+        path: 'customers',
+        name: 'customers',
+        component: () => import('@/views/CustomersView.vue'),
+        meta: { titleKey: 'nav.customers', permission: 'customers.read' },
+      },
+      {
+        path: 'customers/:id',
+        name: 'customer-detail',
+        component: () => import('@/views/CustomerDetailView.vue'),
+        meta: { titleKey: 'nav.customers', permission: 'customers.read' },
+      },
+      {
+        path: 'tickets',
+        name: 'tickets',
+        component: () => import('@/views/TicketsView.vue'),
+        meta: { titleKey: 'nav.tickets', permission: 'tickets.read' },
+      },
+      {
+        path: 'tickets/:id',
+        name: 'ticket-detail',
+        component: () => import('@/views/TicketDetailView.vue'),
+        meta: { titleKey: 'nav.tickets', permission: 'tickets.read' },
+      },
+      {
         path: 'roles',
         name: 'roles',
         component: () => import('@/views/RolesView.vue'),

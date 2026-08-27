@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 interface Props {
-  variant?: 'primary' | 'success' | 'danger' | 'warning' | 'gray'
+  variant?: 'primary' | 'info' | 'success' | 'danger' | 'warning' | 'gray'
   label: string
 }
 
@@ -27,6 +27,11 @@ withDefaults(defineProps<Props>(), {
 }
 
 .variant-primary {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.variant-info {
   background-color: #dbeafe;
   color: #1e40af;
 }
