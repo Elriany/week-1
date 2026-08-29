@@ -1,17 +1,22 @@
 <template>
   <teleport to="body">
-    <transition
-      name="dialog-fade"
-      @click="isOpen && closeOnBackdrop && closeDialog()"
-    >
+    <transition name="dialog-fade">
       <div v-if="isOpen" class="dialog-backdrop" @click="closeOnBackdrop && closeDialog()">
-        <div class="dialog-content" role="dialog" :aria-modal="true" :aria-labelledby="titleId" @click.stop>
+        <div
+          ref="contentRef"
+          class="dialog-content"
+          role="dialog"
+          :aria-modal="true"
+          :aria-labelledby="titleId"
+          tabindex="-1"
+          @click.stop
+        >
           <div class="dialog-header">
             <h2 :id="titleId">{{ title }}</h2>
             <button
               type="button"
               class="close-button"
-              aria-label="Close dialog"
+              :aria-label="t('common.closeDialog')"
               @click="closeDialog()"
             >
               ✕
@@ -30,7 +35,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { useId, ref, watch, nextTick, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   isOpen: boolean
@@ -48,11 +54,81 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 
-const titleId = computed(() => `dialog-title-${Math.random().toString(36).slice(2, 9)}`)
+const { t } = useI18n()
+const titleId = useId()
+const contentRef = ref<HTMLElement | null>(null)
+/** The element focus came from, so closing can hand it back. */
+let opener: Element | null = null
 
 const closeDialog = () => {
   emit('close')
 }
+
+const TABBABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+function tabbables(): HTMLElement[] {
+  if (!contentRef.value) return []
+  return Array.from(contentRef.value.querySelectorAll<HTMLElement>(TABBABLE)).filter(
+    (el) => el.offsetParent !== null || el === document.activeElement,
+  )
+}
+
+function trapFocus(e: KeyboardEvent) {
+  const items = tabbables()
+  if (items.length === 0) {
+    // Nothing to cycle between; keep focus on the dialog itself.
+    e.preventDefault()
+    contentRef.value?.focus()
+    return
+  }
+  const first = items[0]!
+  const last = items[items.length - 1]!
+  const active = document.activeElement
+
+  if (e.shiftKey && (active === first || active === contentRef.value)) {
+    e.preventDefault()
+    last.focus()
+  } else if (!e.shiftKey && active === last) {
+    e.preventDefault()
+    first.focus()
+  }
+}
+
+function onKeydown(e: KeyboardEvent) {
+  // Escape has no opt-out, unlike closeOnBackdrop: a dialog that refuses a
+  // backdrop click guards against a misclick, one that refuses Escape is a trap.
+  if (e.key === 'Escape') {
+    closeDialog()
+    return
+  }
+  if (e.key === 'Tab') trapFocus(e)
+}
+
+function stopListening() {
+  document.removeEventListener('keydown', onKeydown)
+}
+
+watch(
+  () => props.isOpen,
+  async (open) => {
+    if (open) {
+      opener = document.activeElement
+      document.addEventListener('keydown', onKeydown)
+      // The dialog teleports to body, so the query has to run after it lands.
+      await nextTick()
+      const items = tabbables()
+      ;(items[0] ?? contentRef.value)?.focus()
+    } else {
+      stopListening()
+      // The opener can be gone — a dialog that deleted the row it hung off.
+      if (opener instanceof HTMLElement && document.contains(opener)) opener.focus()
+      opener = null
+    }
+  },
+)
+
+onUnmounted(stopListening)
 </script>
 
 <style scoped>
@@ -71,7 +147,7 @@ const closeDialog = () => {
 }
 
 .dialog-content {
-  background-color: white;
+  background-color: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   max-width: 500px;
@@ -146,18 +222,9 @@ const closeDialog = () => {
   opacity: 0;
 }
 
-/* RTL Support */
-:global([dir='rtl']) .dialog-header {
-  flex-direction: row-reverse;
-}
-
-:global([dir='rtl']) .close-button {
-  margin-right: auto;
-}
-
-:global([dir='rtl']) .dialog-footer {
-  justify-content: flex-start;
-}
+/* No [dir='rtl'] overrides here on purpose: the dialog sits inside an
+   rtl document, so the header flex row and its space-between already lay out
+   right-to-left. Reversing again put the close button back beside the title. */
 
 /* Animations */
 @keyframes slideUp {
@@ -181,9 +248,6 @@ const closeDialog = () => {
     max-width: 100%;
     max-height: 100%;
     border-radius: 0;
-  }
-
-  .dialog-content {
     animation: slideUp 0.3s ease-out;
   }
 }

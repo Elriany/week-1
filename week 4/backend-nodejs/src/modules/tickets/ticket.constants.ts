@@ -37,6 +37,22 @@ export const TICKET_CATEGORY_CATALOGUE = [
 ];
 
 /**
+ * How a ticket reached the CRM. Only WEB is produced by any flow in this
+ * feature — PHONE and EMAIL exist so an agent-entered or future ingested ticket
+ * has a value to carry, not because any transport is implemented. Adding a real
+ * channel means adding an intake service; this list does not change.
+ */
+export const TICKET_CHANNELS = {
+  WEB: 'WEB',
+  PHONE: 'PHONE',
+  EMAIL: 'EMAIL',
+} as const;
+
+export type TicketChannel = (typeof TICKET_CHANNELS)[keyof typeof TICKET_CHANNELS];
+
+export const DEFAULT_TICKET_CHANNEL: TicketChannel = TICKET_CHANNELS.WEB;
+
+/**
  * Ticket status transition graph. Maps fromStatus -> list of allowable toStatuses.
  * CLOSED is terminal (no outgoing edges).
  */

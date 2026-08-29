@@ -2,9 +2,15 @@ import { Entity, Column, ManyToOne, JoinColumn, Index, ForeignKey } from 'typeor
 import { BaseEntity } from '../../common/entities/BaseEntity';
 import { Branch } from '../branches/branch.entity';
 
+/**
+ * `code` is deliberately NOT globally unique — the same department code (e.g.
+ * SUPPORT) is legal in every branch. Only the (branchId, code) pair must be
+ * unique. See Story 27's administration story for the migration that removed
+ * the earlier global unique constraint.
+ */
 @Entity('Departments')
 @Index(['branchId'])
-@Index(['code'], { unique: true })
+@Index(['code'])
 @Index(['branchId', 'code'], { unique: true })
 export class Department extends BaseEntity {
   @Column({ type: 'uniqueidentifier' })

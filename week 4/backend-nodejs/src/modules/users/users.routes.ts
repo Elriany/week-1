@@ -10,6 +10,7 @@ import {
   userIdParamSchema,
   listUsersQuerySchema,
   setActiveSchema,
+  linkCustomerSchema,
 } from './users.schemas';
 
 const router = Router();
@@ -118,6 +119,25 @@ router.patch(
   authorize(PERMISSIONS.USERS_DEACTIVATE),
   validate({ params: userIdParamSchema, body: setActiveSchema }),
   usersController.setActive,
+);
+
+/**
+ * @openapi
+ * /users/{id}/customer:
+ *   patch:
+ *     tags: [Users]
+ *     summary: Link or unlink a CUSTOMER-role user to a Customers row
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Updated }
+ *       409: { description: Customer already linked to another account }
+ *       422: { description: Not a CUSTOMER-role user, or the customer is inactive }
+ */
+router.patch(
+  '/:id/customer',
+  authorize(PERMISSIONS.ADMIN_MANAGE),
+  validate({ params: userIdParamSchema, body: linkCustomerSchema }),
+  usersController.linkCustomer,
 );
 
 export default router;

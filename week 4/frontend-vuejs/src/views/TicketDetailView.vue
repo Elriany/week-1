@@ -40,8 +40,8 @@
             <label>{{ t('tickets.columns.status') }}</label>
             <div>
               <BaseBadge
-                :variant="getStatusVariant(ticket.status?.code)"
-                :label="useLocalizedName()(ticket.status)"
+                :variant="statusVariant(ticket.status?.code)"
+                :label="localizedName(ticket.status)"
               />
             </div>
           </div>
@@ -49,8 +49,8 @@
             <label>{{ t('tickets.columns.priority') }}</label>
             <div>
               <BaseBadge
-                :variant="getPriorityVariant(ticket.priority?.code)"
-                :label="useLocalizedName()(ticket.priority)"
+                :variant="priorityVariant(ticket.priority?.code)"
+                :label="localizedName(ticket.priority)"
               />
             </div>
           </div>
@@ -88,16 +88,19 @@
 
         <form v-else class="profile-form" @submit.prevent="submitEdit">
           <BaseInput v-model="editForm.subject" :label="t('tickets.columns.subject')" required />
-          <textarea
-            v-model="editForm.description"
-            class="textarea-input"
-            :placeholder="t('tickets.notes.placeholder')"
-          ></textarea>
+          <label class="select-field">
+            <span>{{ t('tickets.columns.description') }}</span>
+            <textarea
+              v-model="editForm.description"
+              class="textarea-input"
+              :placeholder="t('tickets.create.descriptionPlaceholder')"
+            ></textarea>
+          </label>
 
           <label class="select-field">
             <span>{{ t('tickets.columns.priority') }}</span>
             <select v-model="editForm.priorityCode">
-              <option value="">Select priority</option>
+              <option value="">{{ t('tickets.create.selectPriority') }}</option>
               <option v-for="priority in meta.priorities" :key="priority.code" :value="priority.code">
                 {{ localizedName(priority) }}
               </option>
@@ -107,7 +110,7 @@
           <label class="select-field">
             <span>{{ t('tickets.columns.category') }}</span>
             <select v-model="editForm.categoryCode">
-              <option value="">Select category</option>
+              <option value="">{{ t('tickets.create.selectCategory') }}</option>
               <option v-for="category in meta.categories" :key="category.code" :value="category.code">
                 {{ localizedName(category) }}
               </option>
@@ -132,13 +135,68 @@
         </form>
       </BaseCard>
 
+      <!-- SLA Card — stays visible even with no policy, so the absence reads
+           as a fact about this priority rather than a loading failure. -->
+      <BaseCard :title="t('tickets.sla.label')">
+        <div v-if="ticket.sla" class="sla-grid">
+          <div class="sla-field">
+            <label>{{ t('tickets.sla.label') }}</label>
+            <div><SlaBadge :sla="ticket.sla" /></div>
+          </div>
+          <div class="sla-field">
+            <label>{{ t('tickets.sla.responseDue') }}</label>
+            <div>{{ formatDateTime(ticket.sla.responseDueAt) }}</div>
+          </div>
+          <div class="sla-field">
+            <label>{{ t('tickets.sla.resolutionDue') }}</label>
+            <div>{{ formatDateTime(ticket.sla.resolutionDueAt) }}</div>
+          </div>
+          <div class="sla-field">
+            <label>{{ t('tickets.sla.respondedAt') }}</label>
+            <div>{{ ticket.firstRespondedAt ? formatDateTime(ticket.firstRespondedAt) : '—' }}</div>
+          </div>
+          <div class="sla-field">
+            <label>{{ t('tickets.sla.resolvedAt') }}</label>
+            <div>{{ ticket.resolvedAt ? formatDateTime(ticket.resolvedAt) : '—' }}</div>
+          </div>
+        </div>
+        <p v-else class="hint">{{ t('tickets.sla.noPolicy') }}</p>
+      </BaseCard>
+
+      <!-- Knowledge Base panel — lets an agent search without leaving the ticket. -->
+      <BaseCard v-if="auth.can('kb.read')">
+        <template #header>
+          <button type="button" class="card-header kb-panel-toggle" @click="toggleKbPanel">
+            <h3>{{ t('kb.panel.title') }}</h3>
+            <span>{{ kbPanelOpen ? '▲' : '▼' }}</span>
+          </button>
+        </template>
+
+        <div v-if="kbPanelOpen">
+          <BaseInput v-model="kbQuery" type="search" :label="t('kb.panel.search')" />
+
+          <div v-if="kbLoading" class="centered">
+            <BaseSpinner />
+          </div>
+          <p v-else-if="kbError" class="error-text" role="alert">{{ kbError }}</p>
+          <p v-else-if="kbResults.length === 0" class="hint">{{ t('kb.panel.noResults') }}</p>
+          <ul v-else class="kb-results">
+            <li v-for="article in kbResults" :key="article.id">
+              <a :href="kbArticleHref(article.id)" target="_blank" rel="noopener">
+                {{ localizedName({ nameEn: article.titleEn, nameAr: article.titleAr }) }}
+              </a>
+            </li>
+          </ul>
+        </div>
+      </BaseCard>
+
       <!-- Lifecycle Actions Card (hidden if CLOSED) -->
       <BaseCard v-if="ticket.status?.code !== 'CLOSED'" :title="t('tickets.detail.title')">
         <div class="lifecycle-section">
           <div class="lifecycle-subsection">
             <h4>{{ t('tickets.columns.status') }}</h4>
             <p class="current-status">
-              {{ t('tickets.columns.status') }}: <strong>{{ useLocalizedName()(ticket.status) }}</strong>
+              {{ t('tickets.columns.status') }}: <strong>{{ localizedName(ticket.status) }}</strong>
             </p>
             <BaseButton
               variant="primary"
@@ -260,270 +318,75 @@
         </template>
       </BaseDialog>
 
-      <!-- Notes Card -->
-      <BaseCard>
-        <template #header>
-          <div class="card-header">
-            <h3>{{ t('tickets.notes.title') }}</h3>
-            <BaseButton
-              v-if="auth.can('tickets.update')"
-              variant="primary"
-              size="md"
-              type="button"
-              @click="openCreateNote"
-            >
-              {{ t('tickets.notes.add') }}
-            </BaseButton>
-          </div>
-        </template>
+      <TicketNotesList
+        :notes="notes"
+        :loading="loadingNotes"
+        :error="noteError"
+        :can-add-note="auth.can('tickets.update')"
+        :can-edit="canEditNote"
+        :creating="creatingNote"
+        :form="newNoteForm"
+        :form-error="noteFormError"
+        :saving="savingNote"
+        @open-create="openCreateNote"
+        @submit-create="submitCreateNote"
+        @cancel-create="creatingNote = false"
+        @edit="onEditNote"
+        @delete="confirmDeleteNote"
+      />
 
-        <div v-if="loadingNotes" class="centered">
-          <BaseSpinner />
-        </div>
+      <AttachmentsList
+        :attachments="attachments"
+        :loading="loadingAttachments"
+        :error="attachmentError"
+        :can-upload="auth.can('tickets.update')"
+        :upload-endpoint="`/tickets/${ticket.id}/attachments`"
+        @uploaded="loadAttachments"
+        @download="downloadAttachment"
+        @delete="confirmDeleteAttachment"
+      />
 
-        <p v-else-if="noteError" class="error-text" role="alert">{{ noteError }}</p>
-
-        <EmptyState
-          v-else-if="notes.length === 0"
-          :title="t('tickets.notes.empty.title')"
-          :description="t('tickets.notes.empty.description')"
-        />
-
-        <div v-else class="notes-list">
-          <article
-            v-for="note in notes"
-            :key="note.id"
-            class="note"
-            :class="{ internal: note.isInternal }"
-          >
-            <div class="note-header">
-              <div class="note-title">
-                <strong>{{ note.author ? displayAssigneeName(note.author) : '—' }}</strong>
-                <BaseBadge v-if="note.isInternal" variant="info" :label="t('tickets.notes.internal')" />
-              </div>
-              <span class="timestamp">{{ formatDateTime(note.createdAt) }}</span>
-            </div>
-            <div class="note-body" v-html="escapeHtml(note.body)"></div>
-            <div v-if="canEditNote(note)" class="note-actions">
-              <BaseButton
-                variant="secondary"
-                size="sm"
-                type="button"
-                @click="editingNoteId = note.id; editNoteForm.body = note.body"
-              >
-                {{ t('tickets.notes.edit') }}
-              </BaseButton>
-              <BaseButton
-                variant="danger"
-                size="sm"
-                type="button"
-                @click="confirmDeleteNote(note)"
-              >
-                {{ t('tickets.notes.delete') }}
-              </BaseButton>
-            </div>
-          </article>
-        </div>
-
-        <BaseCard v-if="creatingNote" :title="t('tickets.notes.add')">
-          <form class="form" @submit.prevent="submitCreateNote">
-            <textarea
-              v-model="newNoteForm.body"
-              class="note-input"
-              :placeholder="t('tickets.notes.placeholder')"
-              required
-            ></textarea>
-            <label class="checkbox">
-              <input v-model="newNoteForm.isInternal" type="checkbox" />
-              {{ t('tickets.notes.internal') }}
-            </label>
-            <p v-if="noteFormError" class="error-text">{{ noteFormError }}</p>
-            <div class="form-actions">
-              <BaseButton variant="primary" size="md" type="submit" :loading="savingNote">
-                {{ t('common.save') }}
-              </BaseButton>
-              <BaseButton variant="secondary" size="md" type="button" @click="creatingNote = false">
-                {{ t('common.cancel') }}
-              </BaseButton>
-            </div>
-          </form>
-        </BaseCard>
-      </BaseCard>
-
-      <!-- Attachments Card -->
-      <BaseCard>
-        <template #header>
-          <div class="card-header">
-            <h3>{{ t('tickets.attachments.title') }}</h3>
-            <BaseButton
-              v-if="auth.can('tickets.update')"
-              variant="primary"
-              size="md"
-              type="button"
-              @click="showUploadForm = !showUploadForm"
-            >
-              {{ t('tickets.attachments.upload') }}
-            </BaseButton>
-          </div>
-        </template>
-
-        <div v-if="loadingAttachments" class="centered">
-          <BaseSpinner />
-        </div>
-
-        <p v-else-if="attachmentError" class="error-text" role="alert">{{ attachmentError }}</p>
-
-        <div v-if="auth.can('tickets.update') && showUploadForm" class="upload-form">
-          <p class="upload-info">
-            {{ t('tickets.attachments.maxSize', { size: '5 MB' })
-            }}<br />
-            {{ t('tickets.attachments.allowedTypes') }}
-          </p>
-          <form @submit.prevent="submitUpload" class="form">
-            <input
-              ref="fileInput"
-              type="file"
-              @change="handleFileSelect"
-              class="file-input"
-            />
-            <p v-if="uploadError" class="error-text">{{ uploadError }}</p>
-            <div class="form-actions">
-              <BaseButton variant="primary" size="md" type="submit" :loading="uploading" :disabled="!selectedFile">
-                {{ t('common.save') }}
-              </BaseButton>
-              <BaseButton variant="secondary" size="md" type="button" @click="showUploadForm = false">
-                {{ t('common.cancel') }}
-              </BaseButton>
-            </div>
-          </form>
-        </div>
-
-        <EmptyState
-          v-if="attachments.length === 0"
-          :title="t('tickets.attachments.empty.title')"
-          :description="t('tickets.attachments.empty.description')"
-        />
-
-        <div v-else class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>{{ t('tickets.attachments.columns.name') }}</th>
-                <th>{{ t('tickets.attachments.columns.size') }}</th>
-                <th>{{ t('tickets.attachments.columns.uploader') }}</th>
-                <th>{{ t('tickets.attachments.columns.date') }}</th>
-                <th v-if="auth.can('tickets.update')">{{ t('tickets.attachments.columns.actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in attachments" :key="row.id">
-                <td><bdi>{{ row.originalName }}</bdi></td>
-                <td>{{ formatNumber(Number(row.sizeBytes)) }} bytes</td>
-                <td>{{ row.uploader ? displayAssigneeName(row.uploader) : '—' }}</td>
-                <td>{{ formatDate(row.createdAt) }}</td>
-                <td v-if="auth.can('tickets.update')">
-                  <div class="actions">
-                    <BaseButton
-                      variant="secondary"
-                      size="sm"
-                      type="button"
-                      @click="downloadAttachment(row)"
-                    >
-                      {{ t('tickets.attachments.download') }}
-                    </BaseButton>
-                    <BaseButton
-                      variant="danger"
-                      size="sm"
-                      type="button"
-                      @click="confirmDeleteAttachment(row)"
-                    >
-                      {{ t('tickets.attachments.delete') }}
-                    </BaseButton>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </BaseCard>
-
-      <!-- History/Timeline Card -->
-      <BaseCard>
-        <template #header>
-          <div class="card-header">
-            <h3>{{ t('tickets.history.title') }}</h3>
-          </div>
-        </template>
-
-        <div v-if="loadingHistory" class="centered">
-          <BaseSpinner />
-        </div>
-
-        <p v-else-if="historyError" class="error-text" role="alert">{{ historyError }}</p>
-
-        <EmptyState
-          v-else-if="history.length === 0"
-          :title="t('tickets.history.empty.title')"
-          :description="t('tickets.history.empty.description')"
-        />
-
-        <div v-else class="timeline">
-          <div v-for="entry in history" :key="`${entry.kind}-${entry.id}`" class="timeline-entry">
-            <div class="timeline-icon">
-              <span v-if="entry.kind === 'audit'">📝</span>
-              <span v-else-if="entry.kind === 'note'">📄</span>
-              <span v-else-if="entry.kind === 'attachment'">📎</span>
-            </div>
-            <div class="timeline-content">
-              <div class="timeline-header">
-                <strong>
-                  {{ entry.kind === 'audit' ? t('tickets.history.kind.audit') : entry.kind === 'note' ? t('tickets.history.kind.note') : t('tickets.history.kind.attachment') }}
-                </strong>
-                <span class="timestamp">{{ formatDateTime(entry.createdAt) }}</span>
-              </div>
-              <div v-if="entry.kind === 'audit'" class="timeline-body">
-                {{ entry.actor?.fullNameEn || entry.actor?.fullNameAr || '—' }}: {{ entry.action }}<br />
-                <span v-if="entry.fromValue || entry.toValue">{{ entry.fromValue }} → {{ entry.toValue }}</span>
-                <div v-if="entry.note" class="timeline-note">{{ entry.note }}</div>
-              </div>
-              <div v-else-if="entry.kind === 'note'" class="timeline-body">
-                {{ entry.actor?.fullNameEn || entry.actor?.fullNameAr || '—' }}<br />
-                {{ truncateText(entry.body, 100) }}
-              </div>
-              <div v-else-if="entry.kind === 'attachment'" class="timeline-body">
-                {{ entry.actor?.fullNameEn || entry.actor?.fullNameAr || '—' }}<br />
-                {{ entry.fileName }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="history.length > 0 && canLoadMoreHistory" class="load-more-container">
-          <BaseButton variant="secondary" size="md" type="button" :loading="loadingMore" @click="loadMoreHistory">
-            {{ t('tickets.history.loadMore') }}
-          </BaseButton>
-        </div>
-      </BaseCard>
+      <TicketHistoryTimeline
+        :entries="history"
+        :loading="loadingHistory"
+        :error="historyError"
+        :has-more="canLoadMoreHistory"
+        :loading-more="loadingMore"
+        @load-more="loadMoreHistory"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { priorityVariant, statusVariant } from '@/composables/ticketBadges'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import { ApiError } from '@/types/api'
 import { useAuthStore } from '@/stores/auth.store'
+import { useAppStore } from '@/stores/app.store'
 import { useLocalizedName } from '@/composables/useLocalizedName'
 import { useFormat } from '@/composables/useFormat'
+import { useApiError } from '@/composables/useApiError'
+import { useTicketMeta } from '@/composables/useTicketMeta'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseSpinner from '@/components/ui/BaseSpinner.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
 import BaseDialog from '@/components/ui/BaseDialog.vue'
+import SlaBadge from '@/components/tickets/SlaBadge.vue'
+import TicketNotesList from '@/components/tickets/TicketNotesList.vue'
+import AttachmentsList from '@/components/common/AttachmentsList.vue'
+import TicketHistoryTimeline from '@/components/tickets/TicketHistoryTimeline.vue'
+
+interface SlaSnapshot {
+  status: 'ON_TRACK' | 'AT_RISK' | 'BREACHED' | 'MET'
+  responseDueAt: string
+  resolutionDueAt: string
+}
 
 interface Ref {
   code: string
@@ -555,6 +418,10 @@ interface Ticket {
   category: Ref
   department: string | null
   assignee: User | null
+  channel: string
+  firstRespondedAt: Date | null
+  resolvedAt: Date | null
+  sla: SlaSnapshot | null
   createdAt: Date
   updatedAt: Date
 }
@@ -570,7 +437,6 @@ interface Note {
 
 interface Attachment {
   id: string
-  ticketId: string
   originalName: string
   sizeBytes: number
   createdAt: Date
@@ -603,14 +469,17 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const appStore = useAppStore()
 const localizedName = useLocalizedName()
-const { formatDate, formatDateTime, formatNumber } = useFormat()
+const { formatDateTime } = useFormat()
+const { messageFor: messageForBase } = useApiError()
 
 const ticket = ref<Ticket | null>(null)
 const notes = ref<Note[]>([])
 const attachments = ref<Attachment[]>([])
 const history = ref<HistoryEntry[]>([])
-const meta = ref<{ statuses: Ref[]; priorities: Ref[]; categories: Ref[] }>({ statuses: [], priorities: [], categories: [] })
+const ticketMeta = useTicketMeta()
+const meta = ticketMeta.meta
 const assignees = ref<User[]>([])
 
 const loading = ref(true)
@@ -640,17 +509,27 @@ const editNoteForm = reactive({ body: '' })
 
 const loadingAttachments = ref(false)
 const attachmentError = ref('')
-const showUploadForm = ref(false)
-const fileInput = ref<HTMLInputElement | null>(null)
-const selectedFile = ref<File | null>(null)
-const uploading = ref(false)
-const uploadError = ref('')
 
 const loadingHistory = ref(false)
 const historyError = ref('')
 const history_page = ref(1)
 const canLoadMoreHistory = ref(true)
 const loadingMore = ref(false)
+
+interface KbArticleSummary {
+  id: string
+  titleEn: string
+  titleAr: string
+}
+
+const kbPanelOpen = ref(false)
+const kbQuery = ref('')
+const kbResults = ref<KbArticleSummary[]>([])
+const kbLoading = ref(false)
+const kbError = ref('')
+const kbSeeded = ref(false)
+let kbRequestSeq = 0
+let kbSearchTimer: ReturnType<typeof setTimeout> | undefined
 
 const statusTransitionTarget = ref('')
 const statusTransitionNote = ref('')
@@ -667,34 +546,12 @@ const showAssignDialog = ref(false)
 const deletingNoteId = ref<string | null>(null)
 const deletingAttachmentId = ref<string | null>(null)
 
-function displayCustomerName(row: any): string {
+function displayCustomerName(row: { fullNameEn?: string; fullNameAr?: string; customer?: { fullNameEn?: string; fullNameAr?: string } | null }): string {
   return localizedName({ nameEn: row.customer?.fullNameEn || row.fullNameEn, nameAr: row.customer?.fullNameAr || row.fullNameAr })
 }
 
 function displayAssigneeName(user: User): string {
   return localizedName({ nameEn: user.fullNameEn, nameAr: user.fullNameAr })
-}
-
-function getPriorityVariant(code?: string): string {
-  const priorityMap: Record<string, string> = {
-    'URGENT': 'danger',
-    'HIGH': 'warning',
-    'MEDIUM': 'info',
-    'LOW': 'success',
-  }
-  return priorityMap[code || ''] || 'gray'
-}
-
-function getStatusVariant(code?: string): string {
-  const statusMap: Record<string, string> = {
-    'NEW': 'info',
-    'ASSIGNED': 'info',
-    'IN_PROGRESS': 'warning',
-    'PENDING_CUSTOMER': 'warning',
-    'RESOLVED': 'success',
-    'CLOSED': 'gray',
-  }
-  return statusMap[code || ''] || 'gray'
 }
 
 function getStatusLabel(code: string): string {
@@ -712,25 +569,58 @@ function canEditNote(note: Note): boolean {
   return isAuthor || isAdmin
 }
 
-function escapeHtml(text: string): string {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML.replace(/\n/g, '<br>')
+function onEditNote(note: Note) {
+  editingNoteId.value = note.id
+  editNoteForm.body = note.body
 }
 
-function truncateText(text: string, length: number): string {
-  return text.length > length ? text.substring(0, length) + '…' : text
+function kbArticleHref(id: string): string {
+  return router.resolve({ name: 'kb-article', params: { id } }).href
 }
 
-function messageFor(err: unknown): string {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return t('errors.forbidden')
-    if (err.status === 409) return t('tickets.errors.invalidTransition')
-    if (err.status === 413) return t('tickets.errors.tooLarge')
-    if (err.status === 400 && err.details?.file) return t('tickets.errors.unsupportedType')
-    return err.serverMessage ?? t('errors.unreachable')
+async function loadKbResults() {
+  const seq = ++kbRequestSeq
+  kbLoading.value = true
+  kbError.value = ''
+  try {
+    const params = new URLSearchParams()
+    if (kbQuery.value.trim()) params.set('q', kbQuery.value.trim())
+    params.set('pageSize', '5')
+    const response = await api.get(`/kb/articles?${params}`)
+    if (seq !== kbRequestSeq) return
+    kbResults.value = response.data.items
+  } catch (err) {
+    if (seq !== kbRequestSeq) return
+    kbError.value = messageFor(err)
+  } finally {
+    if (seq === kbRequestSeq) kbLoading.value = false
   }
-  return t('errors.unreachable')
+}
+
+function toggleKbPanel() {
+  const opening = !kbPanelOpen.value
+  // Seed from the ticket subject once on first expand — while the panel is
+  // still closed, so this assignment does not itself trigger the watcher below.
+  if (opening && !kbSeeded.value) {
+    kbSeeded.value = true
+    kbQuery.value = ticket.value?.subject ?? ''
+  }
+  kbPanelOpen.value = opening
+  if (opening) loadKbResults()
+}
+
+watch(kbQuery, () => {
+  if (!kbPanelOpen.value) return
+  clearTimeout(kbSearchTimer)
+  kbSearchTimer = setTimeout(loadKbResults, 300)
+})
+
+const ERROR_OVERRIDES = { 409: 'tickets.errors.invalidTransition', 413: 'tickets.errors.tooLarge' }
+function messageFor(err: unknown): string {
+  if (err instanceof ApiError && err.status === 400 && (err.details as Record<string, unknown> | undefined)?.file) {
+    return t('tickets.errors.unsupportedType')
+  }
+  return messageForBase(err, ERROR_OVERRIDES)
 }
 
 async function loadTicket() {
@@ -741,16 +631,20 @@ async function loadTicket() {
 
   try {
     const response = await api.get(`/tickets/${route.params.id}`)
-    ticket.value = {
+    const loaded = {
       ...response.data,
       createdAt: new Date(response.data.createdAt),
       updatedAt: new Date(response.data.updatedAt),
+      firstRespondedAt: response.data.firstRespondedAt ? new Date(response.data.firstRespondedAt) : null,
+      resolvedAt: response.data.resolvedAt ? new Date(response.data.resolvedAt) : null,
     }
-    editForm.subject = ticket.value.subject
-    editForm.description = ticket.value.description || ''
-    editForm.priorityCode = ticket.value.priority?.code || ''
-    editForm.categoryCode = ticket.value.category?.code || ''
-    editForm.department = ticket.value.department || ''
+    ticket.value = loaded
+    appStore.setBreadcrumbItemLabel(loaded.ticketNumber)
+    editForm.subject = loaded.subject
+    editForm.description = loaded.description || ''
+    editForm.priorityCode = loaded.priority?.code || ''
+    editForm.categoryCode = loaded.category?.code || ''
+    editForm.department = loaded.department || ''
 
     await Promise.all([
       loadNotes(),
@@ -779,7 +673,7 @@ async function loadNotes() {
   noteError.value = ''
   try {
     const response = await api.get(`/tickets/${route.params.id}/notes`)
-    notes.value = response.data.map((n: any) => ({
+    notes.value = response.data.map((n: Omit<Note, 'createdAt'> & { createdAt: string }) => ({
       ...n,
       createdAt: new Date(n.createdAt),
     }))
@@ -795,7 +689,7 @@ async function loadAttachments() {
   attachmentError.value = ''
   try {
     const response = await api.get(`/tickets/${route.params.id}/attachments`)
-    attachments.value = response.data.map((a: any) => ({
+    attachments.value = response.data.map((a: Omit<Attachment, 'createdAt'> & { createdAt: string }) => ({
       ...a,
       createdAt: new Date(a.createdAt),
     }))
@@ -817,7 +711,7 @@ async function loadHistory(page = 1) {
   historyError.value = ''
   try {
     const response = await api.get(`/tickets/${route.params.id}/history?page=${page}&pageSize=20`)
-    const entries = response.data.items.map((e: any) => ({
+    const entries = response.data.items.map((e: Omit<HistoryEntry, 'createdAt'> & { createdAt: string }) => ({
       ...e,
       createdAt: new Date(e.createdAt),
     }))
@@ -975,30 +869,6 @@ async function deleteNote(noteId: string) {
   }
 }
 
-function handleFileSelect() {
-  selectedFile.value = fileInput.value?.files?.[0] || null
-}
-
-async function submitUpload() {
-  uploadError.value = ''
-  if (!selectedFile.value) return
-
-  uploading.value = true
-  try {
-    const formData = new FormData()
-    formData.append('file', selectedFile.value)
-    await api.upload(`/tickets/${ticket.value!.id}/attachments`, formData)
-    showUploadForm.value = false
-    selectedFile.value = null
-    if (fileInput.value) fileInput.value.value = ''
-    await loadAttachments()
-  } catch (err) {
-    uploadError.value = messageFor(err)
-  } finally {
-    uploading.value = false
-  }
-}
-
 async function downloadAttachment(attachment: Attachment) {
   try {
     await api.download(`/tickets/${ticket.value!.id}/attachments/${attachment.id}`)
@@ -1031,8 +901,7 @@ async function loadMoreHistory() {
 
 onMounted(async () => {
   try {
-    const metaRes = await api.get('/tickets/meta')
-    meta.value = metaRes.data
+    await ticketMeta.load()
     const usersRes = await api.get('/tickets/assignable-users')
     assignees.value = usersRes.data
   } catch (err) {
@@ -1040,6 +909,10 @@ onMounted(async () => {
   }
   await loadTicket()
 })
+
+onUnmounted(() => clearTimeout(kbSearchTimer))
+// Clear on unmount, or the next screen's breadcrumb shows this record's name.
+onUnmounted(() => appStore.setBreadcrumbItemLabel(''))
 </script>
 
 <style scoped>
@@ -1060,6 +933,30 @@ onMounted(async () => {
   margin: 0;
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
+}
+
+.kb-panel-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+}
+
+.kb-results {
+  list-style: none;
+  margin: var(--spacing-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.kb-results a {
+  color: var(--color-primary);
 }
 
 .centered {
@@ -1106,6 +1003,30 @@ onMounted(async () => {
 .profile-field div {
   font-size: var(--font-size-base);
   color: var(--color-gray-900);
+}
+
+.sla-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-4);
+}
+
+.sla-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.sla-field label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-700);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
 }
 
 .mono {
@@ -1283,29 +1204,6 @@ onMounted(async () => {
   overflow-x: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: var(--spacing-3);
-  text-align: start;
-  border-bottom: 1px solid var(--color-gray-200);
-  white-space: nowrap;
-}
-
-th {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-gray-700);
-}
-
-td {
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-900);
-}
 
 .actions {
   display: flex;
@@ -1378,23 +1276,23 @@ td {
 
 .info-text {
   padding: var(--spacing-3);
-  background-color: #eff6ff;
-  border-left: 4px solid var(--color-primary);
+  background-color: var(--color-primary-50);
+  border-inline-start: 4px solid var(--color-primary);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
-  color: #0c4a6e;
+  color: var(--color-info-900);
   margin: 0;
 }
 
 .current-status,
 .current-assignee {
   padding: var(--spacing-3);
-  background-color: #f3f4f6;
+  background-color: var(--color-gray-100);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   color: var(--color-gray-900);
   margin: 0;
-  border-left: 4px solid var(--color-primary-200);
+  border-inline-start: 4px solid var(--color-primary-200);
 }
 
 .current-status strong,

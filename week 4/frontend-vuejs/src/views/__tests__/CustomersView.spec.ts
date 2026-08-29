@@ -22,12 +22,16 @@ function mountCustomers() {
     global: {
       plugins: [i18n],
       stubs: {
-        BaseCard: true,
+        // A bare `true` stub renders no slot content in this @vue/test-utils
+        // version, which would hide the whole template (nearly everything
+        // here lives inside BaseCard's default/header slots).
+        BaseCard: { template: '<div><slot name="header" /><slot /></div>' },
         BaseButton: true,
-        BaseInput: true,
+        // BaseInput and EmptyState are simple leaf components with no
+        // dependencies of their own — left un-stubbed so their real <input>
+        // and title/description text are actually present in the DOM.
         BaseBadge: true,
         BaseSpinner: true,
-        EmptyState: true,
       },
     },
   })
@@ -60,7 +64,7 @@ describe('CustomersView', () => {
       },
     };
 
-    (api.get as any).mockResolvedValue(mockResponse)
+    ;(api.get as any).mockResolvedValue(mockResponse)
 
     const wrapper = mountCustomers()
     await flushPromises()
@@ -82,7 +86,7 @@ describe('CustomersView', () => {
       },
     };
 
-    (api.get as any).mockResolvedValue(mockResponse)
+    ;(api.get as any).mockResolvedValue(mockResponse)
 
     const wrapper = mountCustomers()
     await flushPromises()
@@ -103,7 +107,7 @@ describe('CustomersView', () => {
       },
     };
 
-    (api.get as any).mockResolvedValue(mockResponse)
+    ;(api.get as any).mockResolvedValue(mockResponse)
 
     const wrapper = mountCustomers()
     const inputs = wrapper.findAll('input')
@@ -127,7 +131,7 @@ describe('CustomersView', () => {
       },
     };
 
-    (api.get as any).mockResolvedValue(mockResponse)
+    ;(api.get as any).mockResolvedValue(mockResponse)
 
     const wrapper = mountCustomers()
     const inputs = wrapper.findAll('input')
@@ -157,7 +161,7 @@ describe('CustomersView', () => {
       },
     };
 
-    (api.get as any).mockResolvedValue(mockResponse)
+    ;(api.get as any).mockResolvedValue(mockResponse)
 
     const wrapper = mountCustomers()
     await flushPromises()
@@ -190,7 +194,10 @@ describe('CustomersView', () => {
       resolveSecond = resolve
     })
 
-    (api.get as any)
+    ;(api.get as any)
+      // The component fetches once on mount. Without this the two queued
+      // promises shift by one and the assertion measures the wrong request.
+      .mockResolvedValueOnce({ data: { items: [], total: 0, page: 1, pageSize: 20 } })
       .mockReturnValueOnce(firstPromise)
       .mockReturnValueOnce(secondPromise)
 
@@ -250,7 +257,7 @@ describe('CustomersView', () => {
       },
     };
 
-    (api.get as any).mockResolvedValue(mockResponse)
+    ;(api.get as any).mockResolvedValue(mockResponse)
 
     const auth = useAuthStore()
     auth.user = {
@@ -259,8 +266,8 @@ describe('CustomersView', () => {
       fullNameEn: 'Agent',
       fullNameAr: 'وكيل',
       branchId: 'branch1',
-      permissions: ['customers.read'], // No create permission
     }
+    auth.permissions = ['customers.read'] // No create permission
 
     const wrapper = mountCustomers()
     await flushPromises()
@@ -281,7 +288,7 @@ describe('CustomersView', () => {
       },
     };
 
-    (api.get as any).mockResolvedValue(mockResponse)
+    ;(api.get as any).mockResolvedValue(mockResponse)
 
     const wrapper = mountCustomers()
     await flushPromises()
@@ -305,8 +312,8 @@ describe('CustomersView', () => {
       },
     };
 
-    (api.get as any).mockResolvedValue(mockResponse)
-    (api.delete as any).mockResolvedValue({ status: 204 })
+    ;(api.get as any).mockResolvedValue(mockResponse)
+    ;(api.delete as any).mockResolvedValue({ status: 204 })
 
     const auth = useAuthStore()
     auth.user = {
@@ -315,8 +322,8 @@ describe('CustomersView', () => {
       fullNameEn: 'Admin',
       fullNameAr: 'إداري',
       branchId: 'branch1',
-      permissions: ['customers.read', 'customers.delete'],
     }
+    auth.permissions = ['customers.read', 'customers.delete']
 
     const wrapper = mountCustomers()
     await flushPromises()

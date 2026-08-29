@@ -8,6 +8,7 @@ export const createTicketSchema = z.object({
   priorityId: z.string().uuid(),
   categoryId: z.string().uuid().nullish(),
   branchId: z.string().uuid(),
+  channel: z.enum(['WEB', 'PHONE', 'EMAIL']).optional(),
 });
 
 export const updateTicketSchema = z
@@ -32,6 +33,8 @@ export const listTicketsQuerySchema = z.object({
   categoryId: z.string().uuid().optional(),
   assignedUserId: z.string().uuid().optional(),
   unassigned: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
+  channel: z.enum(['WEB', 'PHONE', 'EMAIL']).optional(),
+  slaStatus: z.enum(['ON_TRACK', 'AT_RISK', 'BREACHED', 'MET']).optional(),
   sortBy: z.enum(['createdAt', 'updatedAt', 'ticketNumber', 'priority']).optional(),
   sortDir: z.enum(['asc', 'desc']).optional(),
   page: z.coerce.number().int().min(1).optional(),

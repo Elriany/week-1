@@ -5,6 +5,7 @@ import CustomerDetailView from '../CustomerDetailView.vue'
 import { i18n } from '@/i18n'
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/api/client'
+import { ApiError } from '@/types/api'
 
 vi.mock('@/api/client')
 
@@ -28,20 +29,24 @@ describe('CustomerDetailView', () => {
       global: {
         plugins: [i18n],
         stubs: {
-          BaseCard: true,
+          // A bare `true` stub renders no slot content in this @vue/test-utils
+          // version, which would hide the whole template (nearly everything
+          // here lives inside BaseCard's default/header slots).
+          BaseCard: { template: '<div><slot name="header" /><slot /></div>' },
           BaseButton: true,
-          BaseInput: true,
+          // BaseInput and EmptyState are simple leaf components with no
+          // dependencies of their own — left un-stubbed so their real <input>
+          // and title/description text are actually present in the DOM.
           BaseBadge: true,
           BaseSpinner: true,
-          EmptyState: true,
-          RouterLink: true,
+          RouterLink: { template: '<a><slot /></a>' },
         },
       },
     })
   }
 
   it('renders profile fields from customer data', async () => {
-    (api.get as any).mockResolvedValueOnce({
+    ;(api.get as any).mockResolvedValueOnce({
       data: {
         id: 'cust-123',
         code: 'CUST001',
@@ -53,8 +58,8 @@ describe('CustomerDetailView', () => {
         isActive: true,
       },
     })
-    (api.get as any).mockResolvedValueOnce({ data: [] }) // contacts
-    (api.get as any).mockResolvedValueOnce({ data: [] }) // notes
+    ;(api.get as any).mockResolvedValueOnce({ data: [] }) // contacts
+    ;(api.get as any).mockResolvedValueOnce({ data: [] }) // notes
 
     const wrapper = mountDetail()
     await flushPromises()
@@ -66,7 +71,7 @@ describe('CustomerDetailView', () => {
   })
 
   it('marks the primary contact with a badge', async () => {
-    (api.get as any).mockResolvedValueOnce({
+    ;(api.get as any).mockResolvedValueOnce({
       data: {
         id: 'cust-123',
         code: 'CUST001',
@@ -78,13 +83,13 @@ describe('CustomerDetailView', () => {
         isActive: true,
       },
     })
-    (api.get as any).mockResolvedValueOnce({
+    ;(api.get as any).mockResolvedValueOnce({
       data: [
         { id: 'c1', fullNameEn: 'Primary', fullNameAr: 'أساسي', jobTitle: null, email: null, phone: null, isPrimary: true },
         { id: 'c2', fullNameEn: 'Secondary', fullNameAr: 'ثانوي', jobTitle: null, email: null, phone: null, isPrimary: false },
       ],
     })
-    (api.get as any).mockResolvedValueOnce({ data: [] }) // notes
+    ;(api.get as any).mockResolvedValueOnce({ data: [] }) // notes
 
     const wrapper = mountDetail()
     await flushPromises()
@@ -95,7 +100,7 @@ describe('CustomerDetailView', () => {
   })
 
   it('shows noPrimary hint when no contact is primary', async () => {
-    (api.get as any).mockResolvedValueOnce({
+    ;(api.get as any).mockResolvedValueOnce({
       data: {
         id: 'cust-123',
         code: 'CUST001',
@@ -107,12 +112,12 @@ describe('CustomerDetailView', () => {
         isActive: true,
       },
     })
-    (api.get as any).mockResolvedValueOnce({
+    ;(api.get as any).mockResolvedValueOnce({
       data: [
         { id: 'c1', fullNameEn: 'Contact', fullNameAr: 'اتصال', jobTitle: null, email: null, phone: null, isPrimary: false },
       ],
     })
-    (api.get as any).mockResolvedValueOnce({ data: [] })
+    ;(api.get as any).mockResolvedValueOnce({ data: [] })
 
     const wrapper = mountDetail()
     await flushPromises()
@@ -122,9 +127,7 @@ describe('CustomerDetailView', () => {
   })
 
   it('renders not-found state on 404', async () => {
-    const error = new Error('Not found')
-    Object.assign(error, { status: 404 })
-    (api.get as any).mockRejectedValueOnce(error)
+    ;(api.get as any).mockRejectedValueOnce(new ApiError(404, 'NOT_FOUND'))
 
     const wrapper = mountDetail()
     await flushPromises()
@@ -134,9 +137,7 @@ describe('CustomerDetailView', () => {
   })
 
   it('renders forbidden message on 403', async () => {
-    const error = new Error('Forbidden')
-    Object.assign(error, { status: 403 })
-    (api.get as any).mockRejectedValueOnce(error)
+    ;(api.get as any).mockRejectedValueOnce(new ApiError(403, 'FORBIDDEN'))
 
     const wrapper = mountDetail()
     await flushPromises()
@@ -145,7 +146,7 @@ describe('CustomerDetailView', () => {
     expect(text).toContain('You do not have permission')
   })
 
-  it('shows edit/delete on current user's notes only', async () => {
+  it("shows edit/delete on current user's notes only", async () => {
     const auth = useAuthStore()
     auth.user = {
       id: 'user-admin',
@@ -153,10 +154,10 @@ describe('CustomerDetailView', () => {
       fullNameEn: 'Admin',
       fullNameAr: 'إداري',
       branchId: 'branch-1',
-      permissions: ['customers.read', 'customers.update'],
     }
+    auth.permissions = ['customers.read', 'customers.update']
 
-    (api.get as any).mockResolvedValueOnce({
+    ;(api.get as any).mockResolvedValueOnce({
       data: {
         id: 'cust-123',
         code: 'CUST001',
@@ -168,8 +169,8 @@ describe('CustomerDetailView', () => {
         isActive: true,
       },
     })
-    (api.get as any).mockResolvedValueOnce({ data: [] })
-    (api.get as any).mockResolvedValueOnce({
+    ;(api.get as any).mockResolvedValueOnce({ data: [] })
+    ;(api.get as any).mockResolvedValueOnce({
       data: [
         {
           id: 'note-1',
@@ -195,7 +196,7 @@ describe('CustomerDetailView', () => {
   })
 
   it('preserves newlines in multi-line note body', async () => {
-    (api.get as any).mockResolvedValueOnce({
+    ;(api.get as any).mockResolvedValueOnce({
       data: {
         id: 'cust-123',
         code: 'CUST001',
@@ -207,8 +208,8 @@ describe('CustomerDetailView', () => {
         isActive: true,
       },
     })
-    (api.get as any).mockResolvedValueOnce({ data: [] })
-    (api.get as any).mockResolvedValueOnce({
+    ;(api.get as any).mockResolvedValueOnce({ data: [] })
+    ;(api.get as any).mockResolvedValueOnce({
       data: [
         {
           id: 'note-1',

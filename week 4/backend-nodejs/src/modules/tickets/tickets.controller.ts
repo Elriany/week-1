@@ -18,6 +18,7 @@ import {
 } from './tickets.service';
 import { findById as findCustomerById } from '../customers/customers.service';
 import { listHistory } from './ticketHistory.service';
+import { findPolicyByPriorityId, listPolicies as listSlaPolicies } from '../sla/sla.service';
 
 function isUnscoped(req: Parameters<RequestHandler>[0]): boolean {
   return req.auth?.roleCode === ROLE_CODES.ADMIN;
@@ -47,6 +48,8 @@ export const ticketsController = {
         categoryId: req.query.categoryId as string | undefined,
         assignedUserId: req.query.assignedUserId as string | undefined,
         unassigned: req.query.unassigned as boolean | undefined,
+        channel: req.query.channel as any,
+        slaStatus: req.query.slaStatus as any,
         sortBy: req.query.sortBy as any,
         sortDir: req.query.sortDir as any,
         page: req.query.page as number | undefined,
@@ -76,9 +79,11 @@ export const ticketsController = {
         throw new ForbiddenError('This ticket belongs to another branch');
       }
 
+      const policy = await findPolicyByPriorityId(ticket.priorityId);
+
       return res.json({
         success: true,
-        data: toPublicTicket(ticket),
+        data: toPublicTicket(ticket, policy),
         correlationId: req.correlationId,
       });
     } catch (err) {
@@ -98,7 +103,7 @@ export const ticketsController = {
         throw new ValidationError({ customerId: 'Customer belongs to another branch' });
       }
 
-      const result = await createTicket(req.body);
+      const result = await createTicket({ ...req.body, actorUserId: req.auth!.userId });
       return res.status(201).json({
         success: true,
         data: result,
@@ -130,14 +135,17 @@ export const ticketsController = {
 
   meta: (async (req, res, next) => {
     try {
-      const [statuses, priorities, categories] = await Promise.all([
+      // Active categories and priorities only — a deactivated one stops being
+      // offered on new tickets. Statuses have no such flag and stay unfiltered.
+      const [statuses, priorities, categories, slaPolicies] = await Promise.all([
         AppDataSource.getRepository(TicketStatus).find({ order: { sortOrder: 'ASC' } }),
-        AppDataSource.getRepository(TicketPriority).find({ order: { sortOrder: 'ASC' } }),
-        AppDataSource.getRepository(TicketCategory).find({ order: { sortOrder: 'ASC' } }),
+        AppDataSource.getRepository(TicketPriority).find({ where: { isActive: true }, order: { sortOrder: 'ASC' } }),
+        AppDataSource.getRepository(TicketCategory).find({ where: { isActive: true }, order: { sortOrder: 'ASC' } }),
+        listSlaPolicies(),
       ]);
       return res.json({
         success: true,
-        data: { statuses, priorities, categories },
+        data: { statuses, priorities, categories, slaPolicies },
         correlationId: req.correlationId,
       });
     } catch (err) {

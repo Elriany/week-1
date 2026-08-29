@@ -203,7 +203,7 @@ form {
   padding: var(--spacing-3);
   border-radius: var(--radius-md);
   background-color: var(--color-danger-light);
-  color: #991b1b;
+  color: var(--badge-danger-fg);
   font-size: var(--font-size-sm);
   text-align: center;
 }

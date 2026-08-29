@@ -47,16 +47,16 @@
       />
 
       <div v-else class="table-scroll">
-        <table>
+        <table class="data-table">
           <thead>
             <tr>
-              <th>{{ t('customers.columns.code') }}</th>
-              <th>{{ t('customers.columns.name') }}</th>
-              <th>{{ t('customers.columns.email') }}</th>
-              <th>{{ t('customers.columns.phone') }}</th>
-              <th>{{ t('customers.columns.language') }}</th>
-              <th>{{ t('customers.columns.status') }}</th>
-              <th v-if="auth.can('customers.update') || auth.can('customers.delete')">{{ t('customers.columns.actions') }}</th>
+              <th scope="col">{{ t('customers.columns.code') }}</th>
+              <th scope="col">{{ t('customers.columns.name') }}</th>
+              <th scope="col">{{ t('customers.columns.email') }}</th>
+              <th scope="col">{{ t('customers.columns.phone') }}</th>
+              <th scope="col">{{ t('customers.columns.language') }}</th>
+              <th scope="col">{{ t('customers.columns.status') }}</th>
+              <th scope="col" v-if="auth.can('customers.update') || auth.can('customers.delete')">{{ t('customers.columns.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -188,10 +188,10 @@ import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { api } from '@/api/client'
-import { ApiError } from '@/types/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { useLocalizedName } from '@/composables/useLocalizedName'
 import { useFormat } from '@/composables/useFormat'
+import { useApiError } from '@/composables/useApiError'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -220,6 +220,12 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const localizedName = useLocalizedName()
 const { formatNumber } = useFormat()
+const { messageFor: messageForBase } = useApiError()
+
+const ERROR_OVERRIDES = { 409: 'customers.errors.codeTaken' }
+function messageFor(err: unknown): string {
+  return messageForBase(err, ERROR_OVERRIDES)
+}
 
 const customers = ref<CustomerRow[]>([])
 const total = ref(0)
@@ -253,15 +259,6 @@ let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 function displayName(row: CustomerRow): string {
   return localizedName({ nameEn: row.fullNameEn, nameAr: row.fullNameAr })
-}
-
-function messageFor(err: unknown): string {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return t('errors.forbidden')
-    if (err.status === 409) return t('customers.errors.codeTaken')
-    return err.serverMessage ?? t('errors.unreachable')
-  }
-  return t('errors.unreachable')
 }
 
 async function loadCustomers() {
@@ -411,29 +408,6 @@ onUnmounted(() => clearTimeout(searchTimer))
   overflow-x: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: var(--spacing-3);
-  text-align: start;
-  border-bottom: 1px solid var(--color-gray-200);
-  white-space: nowrap;
-}
-
-th {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-gray-700);
-}
-
-td {
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-900);
-}
 
 .mono {
   font-family: monospace;
@@ -491,8 +465,8 @@ td {
 
 .delete-message {
   padding: var(--spacing-3);
-  background-color: #fee;
-  border-left: 4px solid var(--color-danger);
+  background-color: var(--color-danger-50);
+  border-inline-start: 4px solid var(--color-danger);
   border-radius: var(--radius-sm);
   color: var(--color-danger);
   margin: 0;

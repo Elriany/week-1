@@ -1,5 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { AppError, ValidationError, NotFoundError } from '../../errors/AppError'
+import { errorHandler } from '../errorHandler'
+
+function invoke(err: unknown) {
+  const req: any = { correlationId: 'test-id', originalUrl: '/x', method: 'GET' }
+  const json = vi.fn()
+  const res: any = { headersSent: false, status: vi.fn(() => res), json }
+  errorHandler(err as any, req, res, vi.fn())
+  return { status: res.status.mock.calls[0][0], body: json.mock.calls[0][0] }
+}
 
 describe('errorHandler middleware', () => {
   it('AppError has correct properties', () => {
@@ -48,5 +57,22 @@ describe('errorHandler middleware', () => {
     expect(response.error.message).toBe('Validation failed')
     expect(response.error.details).toEqual({ email: 'invalid' })
     expect(response.correlationId).toBe('test-id')
+  })
+
+  it('does not return internal exception text for a non-AppError', () => {
+    const raw = 'Invalid column name "SecretColumn" on table "Users"'
+    const { status, body } = invoke(new TypeError(raw))
+
+    expect(status).toBe(500)
+    expect(body.error.code).toBe('INTERNAL_SERVER_ERROR')
+    expect(body.error.message).toBe('An internal server error occurred')
+    expect(body.error.message).not.toContain('SecretColumn')
+  })
+
+  it('still returns an AppError message to the client', () => {
+    const { status, body } = invoke(new NotFoundError('User'))
+
+    expect(status).toBe(404)
+    expect(body.error.message).toContain('User')
   })
 })

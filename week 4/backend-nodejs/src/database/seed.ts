@@ -15,6 +15,11 @@ import { CustomerContact } from '../modules/customers/customerContact.entity';
 import { CustomerNote } from '../modules/customers/customerNote.entity';
 import { Ticket } from '../modules/tickets/ticket.entity';
 import { TicketComment } from '../modules/tickets/ticketComment.entity';
+import { SlaPolicy } from '../modules/sla/slaPolicy.entity';
+import { SLA_POLICY_DEFAULTS } from '../modules/sla/sla.constants';
+import { KbCategory } from '../modules/kb/kbCategory.entity';
+import { KbArticle } from '../modules/kb/kbArticle.entity';
+import { KB_CATEGORY_CATALOGUE } from '../modules/kb/kb.constants';
 import {
   PERMISSION_CATALOGUE,
   ROLE_CODES,
@@ -54,6 +59,16 @@ async function seed() {
       }
     }
 
+    for (const kbCategory of KB_CATEGORY_CATALOGUE) {
+      const existing = await AppDataSource.getRepository(KbCategory).findOne({ where: { code: kbCategory.code } });
+      if (!existing) {
+        await AppDataSource.getRepository(KbCategory).save(
+          AppDataSource.getRepository(KbCategory).create({ ...kbCategory, isActive: true }),
+        );
+        logger.info(`Seeded KbCategory: ${kbCategory.code}`);
+      }
+    }
+
     const priorities = [
       { code: 'LOW', nameEn: 'Low', nameAr: 'منخفض', sortOrder: 0 },
       { code: 'MEDIUM', nameEn: 'Medium', nameAr: 'متوسط', sortOrder: 1 },
@@ -67,6 +82,23 @@ async function seed() {
         const newPriority = AppDataSource.getRepository(TicketPriority).create(priority);
         await AppDataSource.getRepository(TicketPriority).save(newPriority);
         logger.info(`Seeded TicketPriority: ${priority.code}`);
+      }
+    }
+
+    for (const policyDefault of SLA_POLICY_DEFAULTS) {
+      const priorityRow = await AppDataSource.getRepository(TicketPriority).findOne({ where: { code: policyDefault.priorityCode } });
+      if (!priorityRow) continue;
+      const existingPolicy = await AppDataSource.getRepository(SlaPolicy).findOne({ where: { priorityId: priorityRow.id } });
+      if (!existingPolicy) {
+        await AppDataSource.getRepository(SlaPolicy).save(
+          AppDataSource.getRepository(SlaPolicy).create({
+            priorityId: priorityRow.id,
+            responseTargetMinutes: policyDefault.responseTargetMinutes,
+            resolutionTargetMinutes: policyDefault.resolutionTargetMinutes,
+            isActive: true,
+          }),
+        );
+        logger.info(`Seeded SlaPolicy: ${policyDefault.priorityCode}`);
       }
     }
 
@@ -159,6 +191,26 @@ async function seed() {
         logger.info('Seeded Department: SALES');
       }
 
+      // A SUPPORT department in HQ too, so the portal's intake resolution
+      // (Story 18) has a target in every branch. Story 20's migration drops
+      // the global unique index on Departments.code that would otherwise
+      // reject this second SUPPORT row — if that migration has not run yet,
+      // this insert fails and that failure is expected until it does.
+      let deptSupportHq = await AppDataSource.getRepository(Department).findOne({
+        where: { code: 'SUPPORT', branchId: branch1.id },
+      });
+      if (!deptSupportHq) {
+        deptSupportHq = AppDataSource.getRepository(Department).create({
+          branchId: branch1.id,
+          code: 'SUPPORT',
+          nameEn: 'Support',
+          nameAr: 'الدعم',
+          isActive: true,
+        });
+        deptSupportHq = await AppDataSource.getRepository(Department).save(deptSupportHq);
+        logger.info('Seeded Department: SUPPORT (HQ)');
+      }
+
       // A department in the second branch, so branch scoping is demonstrable.
       let dept2 = await AppDataSource.getRepository(Department).findOne({
         where: { code: 'SUPPORT', branchId: branch2.id },
@@ -186,6 +238,9 @@ async function seed() {
         { email: 'supervisor@azm.local', roleCode: ROLE_CODES.SUPERVISOR, fullNameEn: 'Team Supervisor', fullNameAr: 'مشرف الفريق', branchId: branch1.id, departmentId: dept1.id },
         { email: 'agent@azm.local', roleCode: ROLE_CODES.AGENT, fullNameEn: 'Support Agent', fullNameAr: 'وكيل الدعم', branchId: branch1.id, departmentId: dept1.id },
         { email: 'customer@azm.local', roleCode: ROLE_CODES.CUSTOMER, fullNameEn: 'Demo Customer', fullNameAr: 'عميل تجريبي', branchId: branch1.id, departmentId: dept1.id },
+        // A second linked customer account — with only one, an isolation test
+        // cannot distinguish correct cross-customer scoping from an empty database.
+        { email: 'customer2@azm.local', roleCode: ROLE_CODES.CUSTOMER, fullNameEn: 'Second Demo Customer', fullNameAr: 'عميل تجريبي ثانٍ', branchId: branch1.id, departmentId: dept1.id },
         { email: 'riyadh.agent@azm.local', roleCode: ROLE_CODES.AGENT, fullNameEn: 'Riyadh Agent', fullNameAr: 'وكيل الرياض', branchId: branch2.id, departmentId: dept2.id },
       ];
 
@@ -235,6 +290,24 @@ async function seed() {
           logger.info(`Seeded Customer: ${customerData.code}`);
         }
         savedCustomers.set(customerData.code, customer);
+      }
+
+      // Link the demo customer login to the CUST001 record, so a CUSTOMER-role
+      // sign-in has a portal identity out of the box (Story 15/18).
+      const demoCustomerUser = await AppDataSource.getRepository(User).findOne({ where: { email: 'customer@azm.local' } });
+      const cust001ForLink = savedCustomers.get('CUST001');
+      if (demoCustomerUser && cust001ForLink && !demoCustomerUser.customerId) {
+        demoCustomerUser.customerId = cust001ForLink.id;
+        await AppDataSource.getRepository(User).save(demoCustomerUser);
+        logger.info('Linked customer@azm.local to CUST001');
+      }
+
+      const demoCustomer2User = await AppDataSource.getRepository(User).findOne({ where: { email: 'customer2@azm.local' } });
+      const cust002ForLink = savedCustomers.get('CUST002');
+      if (demoCustomer2User && cust002ForLink && !demoCustomer2User.customerId) {
+        demoCustomer2User.customerId = cust002ForLink.id;
+        await AppDataSource.getRepository(User).save(demoCustomer2User);
+        logger.info('Linked customer2@azm.local to CUST002');
       }
 
       // Seed contacts and notes for the first two customers
@@ -568,6 +641,100 @@ async function seed() {
               }
             }
           }
+        }
+      }
+
+      // Seed demo KB articles — five published across the four categories, one
+      // left as a draft (proves the audience split), one uncategorised.
+      if (adminUserObj) {
+        const kbCategories = await AppDataSource.getRepository(KbCategory).find();
+        const byCode = new Map(kbCategories.map(c => [c.code, c]));
+        const now = new Date();
+
+        const demoArticles: Array<{
+          slug: string;
+          categoryCode: string | null;
+          titleEn: string;
+          titleAr: string;
+          bodyEn: string;
+          bodyAr: string;
+          isPublished: boolean;
+        }> = [
+          {
+            slug: 'getting-started-with-azm',
+            categoryCode: 'GETTING_STARTED',
+            titleEn: 'Getting Started with AZM',
+            titleAr: 'البدء مع أزم',
+            bodyEn: 'Welcome to AZM. This article walks you through your first steps.',
+            bodyAr: 'مرحبًا بك في أزم. يشرح هذا المقال خطواتك الأولى.',
+            isPublished: true,
+          },
+          {
+            slug: 'how-to-reset-your-password',
+            categoryCode: 'ACCOUNT',
+            titleEn: 'How to Reset Your Password',
+            titleAr: 'كيفية إعادة تعيين كلمة المرور',
+            bodyEn: 'If you forgot your password, contact support to have it reset.',
+            bodyAr: 'إذا نسيت كلمة المرور، تواصل مع الدعم لإعادة تعيينها.',
+            isPublished: true,
+          },
+          {
+            slug: 'understanding-your-invoice',
+            categoryCode: 'ACCOUNT',
+            titleEn: 'Understanding Your Invoice',
+            titleAr: 'فهم فاتورتك',
+            bodyEn: 'Your invoice lists every billed item for the period.',
+            bodyAr: 'تسرد فاتورتك كل بند تمت فوترته خلال الفترة.',
+            isPublished: true,
+          },
+          {
+            slug: 'troubleshooting-connection-issues',
+            categoryCode: 'TECHNICAL',
+            titleEn: 'Troubleshooting Connection Issues',
+            titleAr: 'استكشاف مشكلات الاتصال وإصلاحها',
+            bodyEn: 'Check your network connection and try again.',
+            bodyAr: 'تحقق من اتصال الشبكة وحاول مرة أخرى.',
+            isPublished: true,
+          },
+          {
+            slug: 'our-data-retention-policy',
+            categoryCode: 'POLICIES',
+            titleEn: 'Our Data Retention Policy',
+            titleAr: 'سياسة الاحتفاظ بالبيانات',
+            bodyEn: 'We retain your data according to the terms of service.',
+            bodyAr: 'نحتفظ ببياناتك وفقًا لشروط الخدمة.',
+            isPublished: true,
+          },
+          {
+            slug: 'upcoming-feature-preview',
+            categoryCode: null,
+            titleEn: 'Upcoming Feature Preview',
+            titleAr: 'معاينة ميزة قادمة',
+            bodyEn: 'This article previews a feature still under review.',
+            bodyAr: 'يستعرض هذا المقال ميزة لا تزال قيد المراجعة.',
+            isPublished: false,
+          },
+        ];
+
+        for (const demo of demoArticles) {
+          const existing = await AppDataSource.getRepository(KbArticle).findOne({ where: { slug: demo.slug } });
+          if (existing) continue;
+
+          const category = demo.categoryCode ? byCode.get(demo.categoryCode) : undefined;
+          await AppDataSource.getRepository(KbArticle).save(
+            AppDataSource.getRepository(KbArticle).create({
+              slug: demo.slug,
+              categoryId: category?.id ?? null,
+              titleEn: demo.titleEn,
+              titleAr: demo.titleAr,
+              bodyEn: demo.bodyEn,
+              bodyAr: demo.bodyAr,
+              isPublished: demo.isPublished,
+              publishedAt: demo.isPublished ? now : null,
+              publishedByUserId: demo.isPublished ? adminUserObj.id : null,
+            }),
+          );
+          logger.info(`Seeded KbArticle: ${demo.slug}${demo.isPublished ? '' : ' (draft)'}`);
         }
       }
 

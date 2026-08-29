@@ -5,16 +5,18 @@ export interface TicketFilters {
   statusId?: string
   priorityId?: string
   categoryId?: string
-  assigneeId?: string
+  assignedUserId?: string
   unassignedOnly: boolean
+  slaStatus?: string
 }
 
 export interface FilterState {
   statusId?: string
   priorityId?: string
   categoryId?: string
-  assigneeId?: string
+  assignedUserId?: string
   unassignedOnly: boolean
+  slaStatus?: string
 }
 
 export function useTicketFilters() {
@@ -22,16 +24,18 @@ export function useTicketFilters() {
   const statusId = ref<string | undefined>()
   const priorityId = ref<string | undefined>()
   const categoryId = ref<string | undefined>()
-  const assigneeId = ref<string | undefined>()
+  const assignedUserId = ref<string | undefined>()
   const unassignedOnly = ref(false)
+  const slaStatus = ref<string | undefined>()
 
   const activeFilterCount = computed(() => {
     let count = 0
     if (statusId.value) count++
     if (priorityId.value) count++
     if (categoryId.value) count++
-    if (assigneeId.value) count++
+    if (assignedUserId.value) count++
     if (unassignedOnly.value) count++
+    if (slaStatus.value) count++
     return count
   })
 
@@ -42,8 +46,9 @@ export function useTicketFilters() {
     statusId.value = undefined
     priorityId.value = undefined
     categoryId.value = undefined
-    assigneeId.value = undefined
+    assignedUserId.value = undefined
     unassignedOnly.value = false
+    slaStatus.value = undefined
   }
 
   const filters = computed((): TicketFilters => ({
@@ -51,8 +56,9 @@ export function useTicketFilters() {
     statusId: statusId.value,
     priorityId: priorityId.value,
     categoryId: categoryId.value,
-    assigneeId: assigneeId.value,
+    assignedUserId: assignedUserId.value,
     unassignedOnly: unassignedOnly.value,
+    slaStatus: slaStatus.value,
   }))
 
   return {
@@ -60,8 +66,9 @@ export function useTicketFilters() {
     statusId,
     priorityId,
     categoryId,
-    assigneeId,
+    assignedUserId,
     unassignedOnly,
+    slaStatus,
     filters,
     activeFilterCount,
     hasActiveFilters,

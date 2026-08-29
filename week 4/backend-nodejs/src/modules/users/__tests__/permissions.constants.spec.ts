@@ -49,8 +49,12 @@ describe('role permission map', () => {
     }
   });
 
-  it('grants Customer read-only access', () => {
-    expect(ROLE_PERMISSION_MAP[ROLE_CODES.CUSTOMER]).toEqual([PERMISSIONS.TICKETS_READ]);
+  it('grants Customer exactly tickets.read, tickets.create, and kb.read', () => {
+    expect(ROLE_PERMISSION_MAP[ROLE_CODES.CUSTOMER]).toEqual([
+      PERMISSIONS.TICKETS_READ,
+      PERMISSIONS.TICKETS_CREATE,
+      PERMISSIONS.KB_READ,
+    ]);
   });
 
   it('references only codes that exist in the catalogue', () => {
@@ -126,11 +130,63 @@ describe('role permission map', () => {
     expect(agentPerms).not.toContain(PERMISSIONS.TICKETS_ASSIGN);
   });
 
-  it('grants Customer read-only access to tickets', () => {
+  it('grants Customer create and read but never update or assign for tickets', () => {
     const customerPerms = ROLE_PERMISSION_MAP[ROLE_CODES.CUSTOMER];
     expect(customerPerms).toContain(PERMISSIONS.TICKETS_READ);
-    expect(customerPerms).not.toContain(PERMISSIONS.TICKETS_CREATE);
+    expect(customerPerms).toContain(PERMISSIONS.TICKETS_CREATE);
     expect(customerPerms).not.toContain(PERMISSIONS.TICKETS_UPDATE);
     expect(customerPerms).not.toContain(PERMISSIONS.TICKETS_ASSIGN);
+  });
+});
+
+describe('Story 27 permission codes (kb, reports, admin, audit, sla)', () => {
+  it('adds all six new codes to PERMISSIONS and PERMISSION_CATALOGUE', () => {
+    const codes = [
+      PERMISSIONS.KB_READ,
+      PERMISSIONS.KB_MANAGE,
+      PERMISSIONS.REPORTS_READ,
+      PERMISSIONS.ADMIN_MANAGE,
+      PERMISSIONS.AUDIT_READ,
+      PERMISSIONS.SLA_MANAGE,
+    ];
+    const catalogued = new Set(PERMISSION_CATALOGUE.map(p => p.code));
+    for (const code of codes) {
+      expect(catalogued.has(code)).toBe(true);
+    }
+  });
+
+  it('grants ADMIN every catalogue code, catching a code added but forgotten in the catalogue', () => {
+    expect(ROLE_PERMISSION_MAP[ROLE_CODES.ADMIN].sort()).toEqual(
+      PERMISSION_CATALOGUE.map(p => p.code).sort(),
+    );
+  });
+
+  it('grants AGENT kb.read and none of kb.manage, admin.manage, reports.read, audit.read, sla.manage', () => {
+    const agentPerms = ROLE_PERMISSION_MAP[ROLE_CODES.AGENT];
+    expect(agentPerms).toContain(PERMISSIONS.KB_READ);
+    expect(agentPerms).not.toContain(PERMISSIONS.KB_MANAGE);
+    expect(agentPerms).not.toContain(PERMISSIONS.ADMIN_MANAGE);
+    expect(agentPerms).not.toContain(PERMISSIONS.REPORTS_READ);
+    expect(agentPerms).not.toContain(PERMISSIONS.AUDIT_READ);
+    expect(agentPerms).not.toContain(PERMISSIONS.SLA_MANAGE);
+  });
+
+  it('grants MANAGER kb.read, kb.manage, reports.read, admin.manage, audit.read, sla.manage', () => {
+    const managerPerms = ROLE_PERMISSION_MAP[ROLE_CODES.MANAGER];
+    expect(managerPerms).toContain(PERMISSIONS.KB_READ);
+    expect(managerPerms).toContain(PERMISSIONS.KB_MANAGE);
+    expect(managerPerms).toContain(PERMISSIONS.REPORTS_READ);
+    expect(managerPerms).toContain(PERMISSIONS.ADMIN_MANAGE);
+    expect(managerPerms).toContain(PERMISSIONS.AUDIT_READ);
+    expect(managerPerms).toContain(PERMISSIONS.SLA_MANAGE);
+  });
+
+  it('grants SUPERVISOR kb.read, kb.manage, reports.read but not admin.manage or sla.manage', () => {
+    const supervisorPerms = ROLE_PERMISSION_MAP[ROLE_CODES.SUPERVISOR];
+    expect(supervisorPerms).toContain(PERMISSIONS.KB_READ);
+    expect(supervisorPerms).toContain(PERMISSIONS.KB_MANAGE);
+    expect(supervisorPerms).toContain(PERMISSIONS.REPORTS_READ);
+    expect(supervisorPerms).not.toContain(PERMISSIONS.ADMIN_MANAGE);
+    expect(supervisorPerms).not.toContain(PERMISSIONS.SLA_MANAGE);
   });
 });

@@ -236,7 +236,7 @@ describe('customers — integration tests', () => {
       expect(res.body.data.items.every((c: any) => !c.isActive)).toBe(true);
     });
 
-    it('scopes to manager's branch', async () => {
+    it("scopes to manager's branch", async () => {
       const res = await request(app)
         .get('/api/v1/customers')
         .set('Authorization', `Bearer ${managerToken}`);
@@ -315,7 +315,7 @@ describe('customers — integration tests', () => {
       expect(res.status).toBe(403);
     });
 
-    it('returns 403 for non-admin accessing another branch's customer', async () => {
+    it("returns 403 for non-admin accessing another branch's customer", async () => {
       const customer = await AppDataSource.getRepository(Customer).findOneBy({ code: 'CUST003' });
       if (!customer) throw new Error('CUST003 not found');
 

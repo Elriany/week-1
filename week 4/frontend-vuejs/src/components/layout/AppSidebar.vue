@@ -1,19 +1,23 @@
 <template>
   <div :class="['sidebar', { mobile: isMobile && !appStore.sidebarOpen }]">
     <div v-if="isMobile && appStore.sidebarOpen" class="scrim" @click="appStore.setSidebarOpen(false)" />
-    <nav class="nav">
+    <nav class="nav" :aria-label="t('app.title')">
       <div class="brand">
-        <h1>AZM CRM</h1>
+        <h1>{{ t('app.title') }}</h1>
       </div>
-      <ul class="nav-items">
-        <li v-for="item in visibleNavItems" :key="item.name">
+      <ul v-for="group in visibleGroups" :key="group.key" class="nav-items">
+        <li class="nav-group-heading" role="presentation">{{ t(group.titleKey) }}</li>
+        <li v-for="item in group.items" :key="item.name">
           <RouterLink
+            v-slot="{ isActive }"
             :to="{ name: item.name }"
             class="nav-link"
             @click="handleNavClick"
           >
-            <span class="icon">{{ item.icon }}</span>
-            <span class="label">{{ t(item.titleKey) }}</span>
+            <span class="icon" aria-hidden="true">{{ item.icon }}</span>
+            <span class="label" :aria-current="isActive ? 'page' : undefined">
+              {{ t(item.titleKey) }}
+            </span>
           </RouterLink>
         </li>
       </ul>
@@ -23,36 +27,66 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app.store'
 import { useAuthStore } from '@/stores/auth.store'
+
+type NavGroup = 'work' | 'knowledge' | 'admin'
 
 interface NavItem {
   name: string
   titleKey: string
   icon: string
+  group: NavGroup
   /** When set, the link is hidden unless the signed-in user holds this permission. */
   permission?: string
+  /** Display concern only — restricts the link to these role codes. */
+  roles?: string[]
+  /** Display concern only — hides the link for these role codes. */
+  excludeRoles?: string[]
 }
+
+const NAV_GROUPS: { key: NavGroup; titleKey: string }[] = [
+  { key: 'work', titleKey: 'nav.groups.work' },
+  { key: 'knowledge', titleKey: 'nav.groups.knowledge' },
+  { key: 'admin', titleKey: 'nav.groups.admin' },
+]
 
 const { t } = useI18n()
 const appStore = useAppStore()
 const auth = useAuthStore()
-const route = useRoute()
 const isMobile = ref(false)
 
 const navItems: NavItem[] = [
-  { name: 'dashboard', titleKey: 'nav.dashboard', icon: '📊' },
-  { name: 'users', titleKey: 'nav.users', icon: '👥', permission: 'users.read' },
-  { name: 'customers', titleKey: 'nav.customers', icon: '🧾', permission: 'customers.read' },
-  { name: 'tickets', titleKey: 'nav.tickets', icon: '🎫', permission: 'tickets.read' },
-  { name: 'roles', titleKey: 'nav.roles', icon: '🔑', permission: 'roles.read' },
-  { name: 'about', titleKey: 'nav.about', icon: 'ℹ️' },
+  { name: 'dashboard', titleKey: 'nav.dashboard', icon: '📊', group: 'work', excludeRoles: ['CUSTOMER'] },
+  { name: 'portal-tickets', titleKey: 'nav.myTickets', icon: '🎟️', group: 'work', roles: ['CUSTOMER'] },
+  { name: 'portal-new-ticket', titleKey: 'nav.newRequest', icon: '✉️', group: 'work', roles: ['CUSTOMER'] },
+  { name: 'users', titleKey: 'nav.users', icon: '👥', group: 'admin', permission: 'users.read' },
+  { name: 'customers', titleKey: 'nav.customers', icon: '🧾', group: 'work', permission: 'customers.read' },
+  { name: 'tickets', titleKey: 'nav.tickets', icon: '🎫', group: 'work', permission: 'tickets.read', excludeRoles: ['CUSTOMER'] },
+  { name: 'reports', titleKey: 'nav.reports', icon: '📈', group: 'knowledge', permission: 'reports.read' },
+  { name: 'kb', titleKey: 'nav.kb', icon: '📚', group: 'knowledge', permission: 'kb.read' },
+  { name: 'roles', titleKey: 'nav.roles', icon: '🔑', group: 'admin', permission: 'roles.read' },
+  { name: 'admin', titleKey: 'nav.admin', icon: '⚙️', group: 'admin', permission: 'admin.manage' },
+  { name: 'admin-sla', titleKey: 'nav.sla', icon: '⏱️', group: 'admin', permission: 'sla.manage' },
+  { name: 'audit', titleKey: 'nav.audit', icon: '📜', group: 'admin', permission: 'audit.read' },
 ]
 
 const visibleNavItems = computed(() =>
-  navItems.filter(item => !item.permission || auth.can(item.permission)),
+  navItems.filter(item =>
+    (!item.permission || auth.can(item.permission)) &&
+    (!item.roles || item.roles.includes(auth.roleCode)) &&
+    (!item.excludeRoles || !item.excludeRoles.includes(auth.roleCode)),
+  ),
+)
+
+/** Built from the FILTERED list, never from navItems: this is the only thing
+ *  keeping a CUSTOMER out of the staff links, so grouping must not bypass it.
+ *  A heading with nothing under it reads as a broken menu, hence the filter. */
+const visibleGroups = computed(() =>
+  NAV_GROUPS.map(g => ({ ...g, items: visibleNavItems.value.filter(i => i.group === g.key) }))
+    .filter(g => g.items.length > 0),
 )
 
 function handleNavClick() {
@@ -114,6 +148,19 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
+.nav-items + .nav-items {
+  margin-block-start: var(--spacing-4);
+}
+
+.nav-group-heading {
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-gray-400);
+}
+
 .nav-link {
   display: flex;
   align-items: center;
@@ -160,7 +207,7 @@ onUnmounted(() => {
   }
 
   .sidebar.mobile {
-    transform: translateX(-100%);
+    transform: translateX(calc(-100% * var(--drawer-direction, 1)));
   }
 }
 </style>

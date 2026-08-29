@@ -4,6 +4,7 @@ import { authorize } from '../../common/middleware/authorize';
 import { validate } from '../../common/middleware/validate';
 import { PERMISSIONS } from '../users/permissions.constants';
 import { ticketsController } from './tickets.controller';
+import { denyCustomerRole } from './tickets.guard';
 import { ticketChildrenController } from './ticketChildren.controller';
 import { handleTicketUpload } from '../../common/uploads/attachments.upload';
 import {
@@ -24,6 +25,10 @@ import {
 const router = Router();
 
 router.use(authenticate);
+// Every route below is a staff surface scoped by branch. A CUSTOMER holds
+// `tickets.read`, so without this the permission check alone would let one read
+// other customers' tickets in the same branch. Customers use `/portal/tickets`.
+router.use(denyCustomerRole);
 
 /**
  * @openapi

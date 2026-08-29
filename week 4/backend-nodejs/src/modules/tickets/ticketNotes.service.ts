@@ -1,6 +1,7 @@
 import { AppDataSource } from '../../config/data-source';
 import { NotFoundError } from '../../common/errors/AppError';
 import { TicketComment } from './ticketComment.entity';
+import { Ticket } from './ticket.entity';
 
 export interface PublicTicketNoteAuthor {
   id: string;
@@ -82,14 +83,25 @@ export async function createNote(
   body: string,
   isInternal: boolean = true,
 ): Promise<PublicTicketNote> {
-  const saved = await notes().save(
-    notes().create({
-      ticketId,
-      authorUserId,
-      body,
-      isInternal,
-    }),
-  );
+  const savedId = await AppDataSource.transaction(async manager => {
+    const saved = await manager.save(
+      TicketComment,
+      manager.create(TicketComment, { ticketId, authorUserId, body, isInternal }),
+    );
+
+    // A customer-visible note is the other signal (besides assignment) that
+    // stops the response clock. An internal note does not — the customer has
+    // heard nothing. Write-once, in the same transaction as the note insert.
+    if (!isInternal) {
+      const ticket = await manager.findOne(Ticket, { where: { id: ticketId } });
+      if (ticket && !ticket.firstRespondedAt) {
+        ticket.firstRespondedAt = new Date();
+        await manager.save(Ticket, ticket);
+      }
+    }
+
+    return saved.id;
+  });
 
   const note = await notes()
     .createQueryBuilder('n')
@@ -105,7 +117,7 @@ export async function createNote(
       'author.fullNameEn',
       'author.fullNameAr',
     ])
-    .where('n.id = :id', { id: saved.id })
+    .where('n.id = :id', { id: savedId })
     .getOne();
 
   return toPublicTicketNote(note as any);

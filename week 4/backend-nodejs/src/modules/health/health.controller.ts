@@ -1,8 +1,11 @@
 import type { RequestHandler } from 'express';
 import { AppDataSource } from '../../config/data-source';
 
-const check: RequestHandler = (_req, res) => {
-  res.json({ status: 'up' });
+// Mounted at /api/v1/health, so it carries the same envelope as every other
+// versioned endpoint. The bare `{ status: 'up' }` liveness probe stays at
+// /health in app.ts, where load balancers expect a minimal body.
+const check: RequestHandler = (req, res) => {
+  res.json({ success: true, data: { status: 'up' }, correlationId: req.correlationId });
 };
 
 const checkDatabase: RequestHandler = async (_req, res, next) => {
@@ -23,9 +26,13 @@ const checkDatabase: RequestHandler = async (_req, res, next) => {
     `);
 
     res.json({
-      status: 'up',
-      dbName: result[0]?.dbName,
-      loginName: result[0]?.loginName,
+      success: true,
+      data: {
+        status: 'up',
+        dbName: result[0]?.dbName,
+        loginName: result[0]?.loginName,
+      },
+      correlationId: _req.correlationId,
     });
   } catch (err) {
     next(err);

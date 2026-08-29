@@ -98,8 +98,8 @@ export async function updateContact(contactId: string, input: UpdateContactInput
     isPrimary: input.isPrimary !== undefined ? input.isPrimary : contact.isPrimary,
   });
 
-  await contacts().save(contact);
-  return toPublicContact(await contacts().findOneBy({ id: contactId }));
+  const saved = await contacts().save(contact);
+  return toPublicContact(saved);
 }
 
 export async function deleteContact(contactId: string): Promise<void> {

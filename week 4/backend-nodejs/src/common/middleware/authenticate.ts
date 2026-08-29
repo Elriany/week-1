@@ -43,6 +43,9 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
       branchId: found.user.branchId,
       departmentId: found.user.departmentId,
       permissions: found.permissions,
+      // The user row is re-read on every request, so linking an account takes
+      // effect on the customer's very next request — no re-login required.
+      customerId: found.user.customerId ?? null,
     };
 
     next();

@@ -24,7 +24,7 @@ withDefaults(defineProps<Props>(), {})
 
 <style scoped>
 .base-card {
-  background-color: white;
+  background-color: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;

@@ -1,4 +1,4 @@
-import { vi, beforeEach, afterEach } from 'vitest'
+import { beforeEach, afterEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { i18n } from '@/i18n'
 

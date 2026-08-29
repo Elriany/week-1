@@ -5,6 +5,7 @@ import TicketDetailView from '../TicketDetailView.vue'
 import { i18n } from '@/i18n'
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/api/client'
+import { resetTicketMetaCache } from '@/composables/useTicketMeta'
 
 vi.mock('@/api/client')
 
@@ -22,12 +23,16 @@ function mountTicketDetail() {
     global: {
       plugins: [i18n],
       stubs: {
-        BaseCard: true,
+        // A bare `true` stub renders no slot content in this @vue/test-utils
+        // version, which would hide the whole template (nearly everything
+        // here lives inside BaseCard's default/header slots).
+        BaseCard: { template: '<div><slot name="header" /><slot /></div>' },
         BaseButton: true,
-        BaseInput: true,
+        // BaseInput and EmptyState are simple leaf components with no
+        // dependencies of their own — left un-stubbed so their real <input>
+        // and title/description text are actually present in the DOM.
         BaseBadge: true,
         BaseSpinner: true,
-        EmptyState: true,
       },
     },
   })
@@ -40,6 +45,7 @@ describe('TicketDetailView', () => {
     currentParams = { id: 'ticket-1' }
     push.mockReset()
     vi.clearAllMocks()
+    resetTicketMetaCache()
   })
 
   afterEach(() => {
@@ -76,7 +82,7 @@ describe('TicketDetailView', () => {
     const mockAttachments = { data: [] }
     const mockHistory = { data: { items: [], hasMore: false } }
 
-    (api.get as any)
+    ;(api.get as any)
       .mockResolvedValueOnce(mockMeta)
       .mockResolvedValueOnce(mockAssignees)
       .mockResolvedValueOnce(mockTicket)
@@ -126,7 +132,7 @@ describe('TicketDetailView', () => {
     const mockAttachments = { data: [] }
     const mockHistory = { data: { items: [], hasMore: false } }
 
-    (api.get as any)
+    ;(api.get as any)
       .mockResolvedValueOnce(mockMeta)
       .mockResolvedValueOnce(mockAssignees)
       .mockResolvedValueOnce(mockTicket)
@@ -172,7 +178,7 @@ describe('TicketDetailView', () => {
     const mockAttachments = { data: [] }
     const mockHistory = { data: { items: [], hasMore: false } }
 
-    (api.get as any)
+    ;(api.get as any)
       .mockResolvedValueOnce(mockMeta)
       .mockResolvedValueOnce(mockAssignees)
       .mockResolvedValueOnce(mockTicket)
@@ -218,7 +224,7 @@ describe('TicketDetailView', () => {
     const mockAttachments = { data: [] }
     const mockHistory = { data: { items: [], hasMore: false } }
 
-    (api.get as any)
+    ;(api.get as any)
       .mockResolvedValueOnce(mockMeta)
       .mockResolvedValueOnce(mockAssignees)
       .mockResolvedValueOnce(mockTicket)
@@ -233,8 +239,8 @@ describe('TicketDetailView', () => {
       fullNameEn: 'Agent',
       fullNameAr: 'وكيل',
       branchId: 'branch1',
-      permissions: ['tickets.read', 'tickets.update'],
     }
+    auth.permissions = ['tickets.read', 'tickets.update']
 
     const wrapper = mountTicketDetail()
     await flushPromises()
@@ -285,7 +291,7 @@ describe('TicketDetailView', () => {
     const mockAttachments = { data: [] }
     const mockHistory = { data: { items: [], hasMore: false } }
 
-    (api.get as any)
+    ;(api.get as any)
       .mockResolvedValueOnce(mockMeta)
       .mockResolvedValueOnce(mockAssignees)
       .mockResolvedValueOnce(mockTicket)
@@ -300,8 +306,8 @@ describe('TicketDetailView', () => {
       fullNameEn: 'User',
       fullNameAr: 'مستخدم',
       branchId: 'branch1',
-      permissions: ['tickets.read', 'tickets.update'],
     }
+    auth.permissions = ['tickets.read', 'tickets.update']
 
     const wrapper = mountTicketDetail()
     await flushPromises()
@@ -352,7 +358,7 @@ describe('TicketDetailView', () => {
     }
     const mockHistory = { data: { items: [], hasMore: false } }
 
-    (api.get as any)
+    ;(api.get as any)
       .mockResolvedValueOnce(mockMeta)
       .mockResolvedValueOnce(mockAssignees)
       .mockResolvedValueOnce(mockTicket)
@@ -427,7 +433,7 @@ describe('TicketDetailView', () => {
       },
     }
 
-    (api.get as any)
+    ;(api.get as any)
       .mockResolvedValueOnce(mockMeta)
       .mockResolvedValueOnce(mockAssignees)
       .mockResolvedValueOnce(mockTicket)
@@ -480,7 +486,7 @@ describe('TicketDetailView', () => {
       },
     }
 
-    (api.get as any)
+    ;(api.get as any)
       .mockResolvedValueOnce(mockMeta)
       .mockResolvedValueOnce(mockAssignees)
       .mockResolvedValueOnce(mockTicket)

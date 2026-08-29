@@ -23,7 +23,12 @@
         <template #header>
           <div class="card-header">
             <h3>{{ t('customers.detail.title') }}</h3>
-            <RouterLink :to="{ name: 'customers' }">{{ t('customers.detail.backToList') }}</RouterLink>
+            <div class="header-links">
+              <RouterLink v-if="auth.can('tickets.read')" :to="{ name: 'tickets', query: { customerId: customer!.id } }">
+                {{ t('customers.detail.viewTickets') }}
+              </RouterLink>
+              <RouterLink :to="{ name: 'customers' }">{{ t('customers.detail.backToList') }}</RouterLink>
+            </div>
           </div>
         </template>
 
@@ -126,15 +131,15 @@
         />
 
         <div v-else class="table-scroll">
-          <table>
+          <table class="data-table">
             <thead>
               <tr>
-                <th>{{ t('customers.columns.name') }}</th>
-                <th>Job Title</th>
-                <th>{{ t('customers.columns.email') }}</th>
-                <th>{{ t('customers.columns.phone') }}</th>
-                <th>Status</th>
-                <th v-if="auth.can('customers.update')">Actions</th>
+                <th scope="col">{{ t('customers.columns.name') }}</th>
+                <th scope="col">{{ t('customers.contacts.jobTitle') }}</th>
+                <th scope="col">{{ t('customers.columns.email') }}</th>
+                <th scope="col">{{ t('customers.columns.phone') }}</th>
+                <th scope="col">{{ t('customers.columns.status') }}</th>
+                <th scope="col" v-if="auth.can('customers.update')">{{ t('customers.columns.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -159,7 +164,7 @@
                       variant="secondary"
                       size="sm"
                       type="button"
-                      @click="editingContactId = contact.id; editContactForm = { ...contact }"
+                      @click="editingContactId = contact.id; Object.assign(editContactForm, contact)"
                     >
                       {{ t('customers.contacts.edit') }}
                     </BaseButton>
@@ -261,12 +266,15 @@
 
         <BaseCard v-if="creatingNote" :title="t('customers.notes.add')">
           <form class="form" @submit.prevent="submitCreateNote">
-            <textarea
-              v-model="newNoteForm.body"
-              class="note-input"
-              :placeholder="t('customers.notes.placeholder')"
-              required
-            ></textarea>
+            <label class="select-field">
+              <span>{{ t('common.note') }}</span>
+              <textarea
+                v-model="newNoteForm.body"
+                class="note-input"
+                :placeholder="t('customers.notes.placeholder')"
+                required
+              ></textarea>
+            </label>
             <p v-if="noteFormError" class="error-text">{{ noteFormError }}</p>
             <div class="form-actions">
               <BaseButton variant="primary" size="md" type="submit" :loading="savingNote">
@@ -280,31 +288,61 @@
         </BaseCard>
       </BaseCard>
 
-      <!-- Story 10: Placeholder for attachments and interaction history -->
-      <BaseCard>
-        <div class="placeholder">
-          <!-- Story 10 inserts attachments and interaction history here -->
-        </div>
-      </BaseCard>
+      <!-- Attachments -->
+      <AttachmentsList
+        i18n-prefix="customers.attachments"
+        :attachments="attachments"
+        :loading="loadingAttachments"
+        :error="attachmentError"
+        :can-upload="auth.can('customers.update')"
+        :upload-endpoint="`/customers/${customer.id}/attachments`"
+        @uploaded="loadAttachments"
+        @download="downloadAttachment"
+        @delete="confirmDeleteAttachment"
+      />
+
+      <!-- Interaction history -->
+      <CustomerHistoryList :customer-id="customer.id" />
+
+      <BaseDialog
+        :is-open="deletingAttachment !== null"
+        :title="t('customers.attachments.delete')"
+        @close="deletingAttachment = null"
+      >
+        <p>{{ t('customers.attachments.confirmDelete') }}</p>
+        <template #footer>
+          <BaseButton variant="danger" size="md" type="button" :loading="deletingAttachmentBusy" @click="submitDeleteAttachment">
+            {{ t('common.delete') }}
+          </BaseButton>
+          <BaseButton variant="secondary" size="md" type="button" @click="deletingAttachment = null">
+            {{ t('common.cancel') }}
+          </BaseButton>
+        </template>
+      </BaseDialog>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import { ApiError } from '@/types/api'
 import { useAuthStore } from '@/stores/auth.store'
+import { useAppStore } from '@/stores/app.store'
 import { useLocalizedName } from '@/composables/useLocalizedName'
 import { useFormat } from '@/composables/useFormat'
+import { useApiError } from '@/composables/useApiError'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseSpinner from '@/components/ui/BaseSpinner.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import BaseDialog from '@/components/ui/BaseDialog.vue'
+import AttachmentsList from '@/components/common/AttachmentsList.vue'
+import CustomerHistoryList from '@/components/customers/CustomerHistoryList.vue'
 
 interface Customer {
   id: string
@@ -346,7 +384,9 @@ interface Note {
 const { t } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
+const appStore = useAppStore()
 const localizedName = useLocalizedName()
+const { messageFor } = useApiError()
 const { formatDateTime } = useFormat()
 
 const customer = ref<Customer | null>(null)
@@ -394,7 +434,7 @@ function noteAuthorName(author: NoteAuthor): string {
 
 function canEditNote(note: Note): boolean {
   const isAuthor = note.author?.id === auth.user?.id
-  const isAdmin = auth.user?.permissions?.includes('users.deactivate')
+  const isAdmin = auth.can('users.deactivate')
   return isAuthor || isAdmin
 }
 
@@ -412,15 +452,18 @@ async function loadCustomer() {
 
   try {
     const response = await api.get(`/customers/${route.params.id}`)
-    customer.value = response.data
-    editForm.fullNameEn = customer.value.fullNameEn
-    editForm.fullNameAr = customer.value.fullNameAr
-    editForm.email = customer.value.email || ''
-    editForm.phone = customer.value.phone || ''
-    editForm.preferredLanguage = customer.value.preferredLanguage
+    const loaded = response.data
+    customer.value = loaded
+    appStore.setBreadcrumbItemLabel(loaded.code)
+    editForm.fullNameEn = loaded.fullNameEn
+    editForm.fullNameAr = loaded.fullNameAr
+    editForm.email = loaded.email || ''
+    editForm.phone = loaded.phone || ''
+    editForm.preferredLanguage = loaded.preferredLanguage
 
     await loadContacts()
     await loadNotes()
+    await loadAttachments()
   } catch (err) {
     if (err instanceof ApiError) {
       if (err.status === 404) {
@@ -428,10 +471,10 @@ async function loadCustomer() {
       } else if (err.status === 403) {
         forbidden.value = true
       } else {
-        loadError.value = err.serverMessage ?? t('errors.unreachable')
+        loadError.value = messageFor(err)
       }
     } else {
-      loadError.value = t('errors.unreachable')
+      loadError.value = messageFor(err)
     }
   } finally {
     loading.value = false
@@ -445,9 +488,63 @@ async function loadContacts() {
     const response = await api.get(`/customers/${route.params.id}/contacts`)
     contacts.value = response.data
   } catch (err) {
-    contactError.value = err instanceof ApiError ? err.serverMessage ?? t('errors.unreachable') : t('errors.unreachable')
+    contactError.value = messageFor(err)
   } finally {
     loadingContacts.value = false
+  }
+}
+
+interface Attachment {
+  id: string
+  originalName: string
+  sizeBytes: number
+  createdAt: Date
+  uploader: NoteAuthor | null
+}
+
+const attachments = ref<Attachment[]>([])
+const loadingAttachments = ref(false)
+const attachmentError = ref('')
+const deletingAttachment = ref<Attachment | null>(null)
+const deletingAttachmentBusy = ref(false)
+
+async function loadAttachments() {
+  loadingAttachments.value = true
+  attachmentError.value = ''
+  try {
+    const response = await api.get(`/customers/${route.params.id}/attachments`)
+    attachments.value = response.data.map(
+      (a: Omit<Attachment, 'createdAt'> & { createdAt: string }) => ({
+        ...a,
+        createdAt: new Date(a.createdAt),
+      }),
+    )
+  } catch (err) {
+    attachmentError.value = messageFor(err)
+  } finally {
+    loadingAttachments.value = false
+  }
+}
+
+function downloadAttachment(attachment: Attachment) {
+  api.download(`/customers/${route.params.id}/attachments/${attachment.id}/download`)
+}
+
+function confirmDeleteAttachment(attachment: Attachment) {
+  deletingAttachment.value = attachment
+}
+
+async function submitDeleteAttachment() {
+  if (!deletingAttachment.value) return
+  deletingAttachmentBusy.value = true
+  try {
+    await api.delete(`/customers/${route.params.id}/attachments/${deletingAttachment.value.id}`)
+    deletingAttachment.value = null
+    await loadAttachments()
+  } catch (err) {
+    attachmentError.value = messageFor(err)
+  } finally {
+    deletingAttachmentBusy.value = false
   }
 }
 
@@ -456,9 +553,9 @@ async function loadNotes() {
   noteError.value = ''
   try {
     const response = await api.get(`/customers/${route.params.id}/notes`)
-    notes.value = response.data.map((n: any) => ({ ...n, createdAt: new Date(n.createdAt) }))
+    notes.value = response.data.map((n: Omit<Note, 'createdAt'> & { createdAt: string }) => ({ ...n, createdAt: new Date(n.createdAt) }))
   } catch (err) {
-    noteError.value = err instanceof ApiError ? err.serverMessage ?? t('errors.unreachable') : t('errors.unreachable')
+    noteError.value = messageFor(err)
   } finally {
     loadingNotes.value = false
   }
@@ -479,7 +576,7 @@ async function submitEdit() {
     editMode.value = false
     await loadCustomer()
   } catch (err) {
-    editError.value = err instanceof ApiError ? err.serverMessage ?? t('errors.unreachable') : t('errors.unreachable')
+    editError.value = messageFor(err)
   } finally {
     editing.value = false
   }
@@ -505,7 +602,7 @@ async function submitCreateContact() {
     creatingContact.value = false
     await loadContacts()
   } catch (err) {
-    contactFormError.value = err instanceof ApiError ? err.serverMessage ?? t('errors.unreachable') : t('errors.unreachable')
+    contactFormError.value = messageFor(err)
   } finally {
     savingContact.value = false
   }
@@ -524,7 +621,7 @@ async function deleteContact(contactId: string) {
     await api.delete(`/customers/${customer.value!.id}/contacts/${contactId}`)
     await loadContacts()
   } catch (err) {
-    contactError.value = err instanceof ApiError ? err.serverMessage ?? t('errors.unreachable') : t('errors.unreachable')
+    contactError.value = messageFor(err)
   } finally {
     deletingContactId.value = null
   }
@@ -545,7 +642,7 @@ async function submitCreateNote() {
     creatingNote.value = false
     await loadNotes()
   } catch (err) {
-    noteFormError.value = err instanceof ApiError ? err.serverMessage ?? t('errors.unreachable') : t('errors.unreachable')
+    noteFormError.value = messageFor(err)
   } finally {
     savingNote.value = false
   }
@@ -564,7 +661,7 @@ async function deleteNote(noteId: string) {
     await api.delete(`/customers/${customer.value!.id}/notes/${noteId}`)
     await loadNotes()
   } catch (err) {
-    noteError.value = err instanceof ApiError ? err.serverMessage ?? t('errors.unreachable') : t('errors.unreachable')
+    noteError.value = messageFor(err)
   } finally {
     deletingNoteId.value = null
   }
@@ -573,6 +670,8 @@ async function deleteNote(noteId: string) {
 onMounted(() => {
   loadCustomer()
 })
+// Clear on unmount, or the next screen's breadcrumb shows this record's name.
+onUnmounted(() => appStore.setBreadcrumbItemLabel(''))
 </script>
 
 <style scoped>
@@ -586,6 +685,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.header-links {
+  display: flex;
   gap: var(--spacing-4);
 }
 
@@ -660,29 +764,6 @@ onMounted(() => {
   overflow-x: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: var(--spacing-3);
-  text-align: start;
-  border-bottom: 1px solid var(--color-gray-200);
-  white-space: nowrap;
-}
-
-th {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-gray-700);
-}
-
-td {
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-900);
-}
 
 .hint {
   font-size: var(--font-size-xs);
@@ -764,17 +845,6 @@ td {
   font-family: monospace;
   font-size: var(--font-size-sm);
   resize: vertical;
-}
-
-.placeholder {
-  padding: var(--spacing-6);
-  text-align: center;
-  color: var(--color-gray-500);
-  font-size: var(--font-size-sm);
-  min-height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .checkbox {

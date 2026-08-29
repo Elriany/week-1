@@ -4,10 +4,22 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '.
 import { Ticket } from './ticket.entity';
 import { TicketStatus } from './ticketStatus.entity';
 import { TicketPriority } from './ticketPriority.entity';
-import { TICKET_STATUS_CODES, canTransition, TICKET_HISTORY_ACTIONS, type TicketStatusCode } from './ticket.constants';
+import {
+  TICKET_STATUS_CODES,
+  canTransition,
+  TICKET_HISTORY_ACTIONS,
+  DEFAULT_TICKET_CHANNEL,
+  type TicketStatusCode,
+  type TicketChannel,
+} from './ticket.constants';
 import { recordHistory } from './ticketHistory.service';
+import { recordAudit } from '../../common/audit/audit.service';
+import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES } from '../../common/audit/audit.constants';
 import { User } from '../users/user.entity';
 import { ROLE_CODES } from '../users/permissions.constants';
+import { computeSla, findPolicyByPriorityId, policyMapByPriorityId, type SlaSnapshot } from '../sla/sla.service';
+import type { SlaPolicy } from '../sla/slaPolicy.entity';
+import { escalateIfBreached } from '../sla/slaEscalation.service';
 
 export interface PublicTicket {
   id: string;
@@ -23,6 +35,10 @@ export interface PublicTicket {
   category: { id: string; code: string; nameEn: string; nameAr: string } | null;
   customer: { id: string; code: string; fullNameEn: string; fullNameAr: string } | null;
   assignedUser: { id: string; fullNameEn: string; fullNameAr: string } | null;
+  channel: TicketChannel;
+  firstRespondedAt: Date | null;
+  resolvedAt: Date | null;
+  sla: SlaSnapshot | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +51,8 @@ export interface CreateTicketInput {
   priorityId: string;
   categoryId?: string | null;
   branchId: string;
+  channel?: TicketChannel;
+  actorUserId: string;
 }
 
 export interface UpdateTicketInput {
@@ -55,6 +73,9 @@ export interface ListTicketsFilter {
   categoryId?: string;
   assignedUserId?: string;
   unassigned?: boolean;
+  channel?: TicketChannel;
+  /** Computed, not stored — filtering by it reads the whole matching set rather than a page. See listTickets. */
+  slaStatus?: SlaSnapshot['status'];
   sortBy?: 'createdAt' | 'updatedAt' | 'ticketNumber' | 'priority';
   sortDir?: 'asc' | 'desc';
   page?: number;
@@ -68,7 +89,7 @@ export interface PagedTickets {
   pageSize: number;
 }
 
-export function toPublicTicket(t: Ticket): PublicTicket {
+export function toPublicTicket(t: Ticket, policy?: SlaPolicy | null): PublicTicket {
   return {
     id: t.id,
     ticketNumber: t.ticketNumber,
@@ -93,6 +114,10 @@ export function toPublicTicket(t: Ticket): PublicTicket {
     assignedUser: t.assignedUser
       ? { id: t.assignedUser.id, fullNameEn: t.assignedUser.fullNameEn, fullNameAr: t.assignedUser.fullNameAr }
       : null,
+    channel: t.channel,
+    firstRespondedAt: t.firstRespondedAt ?? null,
+    resolvedAt: t.resolvedAt ?? null,
+    sla: computeSla(t, policy ?? null),
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
   };
@@ -121,7 +146,7 @@ async function generateTicketNumber(): Promise<string> {
 
 export async function createTicket(input: CreateTicketInput): Promise<PublicTicket> {
   // Use transaction to ensure number generation + insert are atomic
-  return AppDataSource.transaction(async manager => {
+  const savedId = await AppDataSource.transaction(async manager => {
     const year = new Date().getFullYear();
     const prefix = `${TICKET_PREFIX}-${year}-`;
 
@@ -152,11 +177,28 @@ export async function createTicket(input: CreateTicketInput): Promise<PublicTick
       categoryId: input.categoryId ?? null,
       statusId: newStatus.id,
       assignedUserId: null,
+      channel: input.channel ?? DEFAULT_TICKET_CHANNEL,
     });
 
     const saved = await manager.save(Ticket, ticket);
-    return toPublicTicket(await findById(saved.id));
+
+    await recordAudit(manager, {
+      actorUserId: input.actorUserId,
+      action: AUDIT_ACTIONS.TICKET_CREATED,
+      entityType: AUDIT_ENTITY_TYPES.TICKET,
+      entityId: saved.id,
+      summary: `Ticket ${ticketNumber} created`,
+      details: { ticketNumber, channel: ticket.channel },
+    });
+
+    return saved.id;
   });
+
+  // findById opens its own connection, separate from the transaction's — it
+  // must run after the transaction commits, or it deadlocks against the
+  // still-uncommitted insert (a pre-existing defect fixed as part of Story 27).
+  const created = await findById(savedId);
+  return toPublicTicket(created, await findPolicyByPriorityId(created.priorityId));
 }
 
 export async function listTickets(filter: ListTicketsFilter = {}): Promise<PagedTickets> {
@@ -179,6 +221,7 @@ export async function listTickets(filter: ListTicketsFilter = {}): Promise<Paged
   if (filter.categoryId) qb.andWhere('t.categoryId = :categoryId', { categoryId: filter.categoryId });
   if (filter.assignedUserId) qb.andWhere('t.assignedUserId = :assignedUserId', { assignedUserId: filter.assignedUserId });
   if (filter.unassigned) qb.andWhere('t.assignedUserId IS NULL');
+  if (filter.channel) qb.andWhere('t.channel = :channel', { channel: filter.channel });
 
   if (filter.q) {
     const term = `%${filter.q.replace(/[[\]%_]/g, ch => `[${ch}]`)}%`;
@@ -198,10 +241,23 @@ export async function listTickets(filter: ListTicketsFilter = {}): Promise<Paged
   const dir = filter.sortDir === 'asc' ? 'ASC' : 'DESC';
   qb.orderBy(column, dir).addOrderBy('t.id', 'ASC');
 
+  const policyMap = await policyMapByPriorityId();
+
+  if (filter.slaStatus) {
+    // slaStatus is computed, not indexed, so it cannot be filtered in SQL. This
+    // reads the whole branch-scoped matching set rather than a page — the one
+    // filter that does, and the one exception to "no counting in JavaScript".
+    const rows = await qb.getMany();
+    const projected = rows.map(row => toPublicTicket(row, policyMap.get(row.priorityId) ?? null));
+    const filtered = projected.filter(p => p.sla?.status === filter.slaStatus);
+    const start = (page - 1) * pageSize;
+    return { items: filtered.slice(start, start + pageSize), total: filtered.length, page, pageSize };
+  }
+
   qb.skip((page - 1) * pageSize).take(pageSize);
 
   const [rows, total] = await qb.getManyAndCount();
-  return { items: rows.map(toPublicTicket), total, page, pageSize };
+  return { items: rows.map(row => toPublicTicket(row, policyMap.get(row.priorityId) ?? null)), total, page, pageSize };
 }
 
 export async function findById(id: string): Promise<Ticket> {
@@ -240,6 +296,7 @@ export async function updateTicket(id: string, input: UpdateTicketInput): Promis
       if (oldPriority && newPriority) {
         await recordHistory(manager, {
           ticketId: id,
+          // TODO (Story 27 follow-up): actorUserId is never populated on this path
           actorUserId: '', // Will be set by controller
           action: TICKET_HISTORY_ACTIONS.PRIORITY_CHANGED,
           fromValue: oldPriority.code,
@@ -249,7 +306,8 @@ export async function updateTicket(id: string, input: UpdateTicketInput): Promis
     }
   });
 
-  return toPublicTicket(await findById(id));
+  const updated = await findById(id);
+  return toPublicTicket(updated, await findPolicyByPriorityId(updated.priorityId));
 }
 
 /**
@@ -286,7 +344,7 @@ export async function transitionTicket(
 
   // Check if already in target status (no-op)
   if (ticket.statusId === toStatusId) {
-    return toPublicTicket(ticket);
+    return toPublicTicket(ticket, await findPolicyByPriorityId(ticket.priorityId));
   }
 
   // Check if current status is CLOSED (terminal)
@@ -303,6 +361,12 @@ export async function transitionTicket(
   await AppDataSource.transaction(async manager => {
     const oldStatusCode = ticket.status!.code;
     ticket.statusId = toStatusId;
+
+    if (!ticket.resolvedAt &&
+        (toStatus.code === TICKET_STATUS_CODES.RESOLVED || toStatus.code === TICKET_STATUS_CODES.CLOSED)) {
+      ticket.resolvedAt = new Date();
+    }
+
     await manager.save(ticket);
 
     await recordHistory(manager, {
@@ -313,9 +377,21 @@ export async function transitionTicket(
       toValue: toStatus.code,
       note: note ?? null,
     });
+
+    await recordAudit(manager, {
+      actorUserId,
+      action: AUDIT_ACTIONS.TICKET_STATUS_CHANGED,
+      entityType: AUDIT_ENTITY_TYPES.TICKET,
+      entityId: ticketId,
+      summary: `${oldStatusCode} → ${toStatus.code}`,
+      details: { ticketNumber: ticket.ticketNumber, fromStatus: oldStatusCode, toStatus: toStatus.code, note: note ?? null },
+    });
+
+    await escalateIfBreached(manager, ticket, actorUserId);
   });
 
-  return toPublicTicket(await findById(ticketId));
+  const finalTicket = await findById(ticketId);
+  return toPublicTicket(finalTicket, await findPolicyByPriorityId(finalTicket.priorityId));
 }
 
 /**
@@ -356,7 +432,7 @@ export async function assignTicket(
 
   // Check if it's already assigned to that user (no-op)
   if (ticket.assignedUserId === newAssignedUserId) {
-    return toPublicTicket(ticket);
+    return toPublicTicket(ticket, await findPolicyByPriorityId(ticket.priorityId));
   }
 
   // Validate assignee if assigning
@@ -391,6 +467,12 @@ export async function assignTicket(
 
     ticket.assignedUserId = newAssignedUserId;
 
+    // First response = the first time a human took ownership. Write-once: a
+    // reassignment must not restart the response clock.
+    if (newAssignedUserId && !ticket.firstRespondedAt) {
+      ticket.firstRespondedAt = new Date();
+    }
+
     // Auto-promote NEW to ASSIGNED when assigning
     let statusChanged = false;
     if (newAssignedUserId && ticket.status!.code === TICKET_STATUS_CODES.NEW) {
@@ -417,6 +499,15 @@ export async function assignTicket(
         toValue: assigneeFullName,
         note: note ?? null,
       });
+
+      await recordAudit(manager, {
+        actorUserId,
+        action: AUDIT_ACTIONS.TICKET_ASSIGNED,
+        entityType: AUDIT_ENTITY_TYPES.TICKET,
+        entityId: ticketId,
+        summary: `Assigned to ${assigneeFullName}`,
+        details: { ticketNumber: ticket.ticketNumber, fromUserId: oldAssignedUserId, toUserId: newAssignedUserId, note: note ?? null },
+      });
     } else if (oldAssignedUserId) {
       // Unassignment
       await recordHistory(manager, {
@@ -426,6 +517,15 @@ export async function assignTicket(
         fromValue: oldAssignedUser?.fullNameEn ?? null,
         toValue: 'Unassigned',
         note: note ?? null,
+      });
+
+      await recordAudit(manager, {
+        actorUserId,
+        action: AUDIT_ACTIONS.TICKET_UNASSIGNED,
+        entityType: AUDIT_ENTITY_TYPES.TICKET,
+        entityId: ticketId,
+        summary: `Unassigned from ${oldAssignedUser?.fullNameEn ?? 'previous assignee'}`,
+        details: { ticketNumber: ticket.ticketNumber, fromUserId: oldAssignedUserId, note: note ?? null },
       });
     }
 
@@ -439,8 +539,20 @@ export async function assignTicket(
         toValue: TICKET_STATUS_CODES.ASSIGNED,
         note: note ?? null,
       });
+
+      await recordAudit(manager, {
+        actorUserId,
+        action: AUDIT_ACTIONS.TICKET_STATUS_CHANGED,
+        entityType: AUDIT_ENTITY_TYPES.TICKET,
+        entityId: ticketId,
+        summary: `${TICKET_STATUS_CODES.NEW} → ${TICKET_STATUS_CODES.ASSIGNED}`,
+        details: { ticketNumber: ticket.ticketNumber, fromStatus: TICKET_STATUS_CODES.NEW, toStatus: TICKET_STATUS_CODES.ASSIGNED, note: note ?? null },
+      });
     }
+
+    await escalateIfBreached(manager, ticket, actorUserId);
   });
 
-  return toPublicTicket(await findById(ticketId));
+  const finalTicket = await findById(ticketId);
+  return toPublicTicket(finalTicket, await findPolicyByPriorityId(finalTicket.priorityId));
 }

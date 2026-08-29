@@ -13,6 +13,9 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   let message = 'An internal server error occurred';
   let details: unknown;
   let stack: string | undefined;
+  // What goes to the log. For an AppError this equals the client message; for
+  // anything else it holds the real text the client must not see.
+  let loggedMessage = message;
 
   if (err instanceof AppError) {
     statusCode = err.statusCode;
@@ -20,9 +23,12 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     message = err.message;
     details = err.details;
     stack = err.stack;
+    loggedMessage = err.message;
   } else if (err instanceof Error) {
+    // A driver or runtime message can name a table, a column, or a file path,
+    // so it stays in the log and never reaches the response.
     stack = err.stack;
-    message = err.message || message;
+    loggedMessage = err.message || message;
   }
 
   // Log the full error with stack and correlation ID
@@ -30,7 +36,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     correlationId: req.correlationId,
     statusCode,
     code,
-    message,
+    message: loggedMessage,
     stack,
     url: req.originalUrl,
     method: req.method,

@@ -17,6 +17,12 @@ export const PERMISSIONS = {
   CUSTOMERS_CREATE: 'customers.create',
   CUSTOMERS_UPDATE: 'customers.update',
   CUSTOMERS_DELETE: 'customers.delete',
+  KB_READ: 'kb.read',
+  KB_MANAGE: 'kb.manage',
+  REPORTS_READ: 'reports.read',
+  ADMIN_MANAGE: 'admin.manage',
+  AUDIT_READ: 'audit.read',
+  SLA_MANAGE: 'sla.manage',
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -35,6 +41,12 @@ export const PERMISSION_CATALOGUE: Array<{ code: PermissionCode; nameEn: string;
   { code: PERMISSIONS.CUSTOMERS_CREATE, nameEn: 'Create customers', nameAr: 'إنشاء العملاء' },
   { code: PERMISSIONS.CUSTOMERS_UPDATE, nameEn: 'Edit customers', nameAr: 'تعديل العملاء' },
   { code: PERMISSIONS.CUSTOMERS_DELETE, nameEn: 'Delete customers', nameAr: 'حذف العملاء' },
+  { code: PERMISSIONS.KB_READ, nameEn: 'View knowledge base', nameAr: 'عرض قاعدة المعرفة' },
+  { code: PERMISSIONS.KB_MANAGE, nameEn: 'Manage knowledge base', nameAr: 'إدارة قاعدة المعرفة' },
+  { code: PERMISSIONS.REPORTS_READ, nameEn: 'View reports', nameAr: 'عرض التقارير' },
+  { code: PERMISSIONS.ADMIN_MANAGE, nameEn: 'Manage CRM configuration', nameAr: 'إدارة إعدادات النظام' },
+  { code: PERMISSIONS.AUDIT_READ, nameEn: 'View audit log', nameAr: 'عرض سجل التدقيق' },
+  { code: PERMISSIONS.SLA_MANAGE, nameEn: 'Manage SLA policies', nameAr: 'إدارة اتفاقيات مستوى الخدمة' },
 ];
 
 export const ROLE_CODES = {
@@ -63,6 +75,12 @@ export const ROLE_PERMISSION_MAP: Record<RoleCode, PermissionCode[]> = {
     PERMISSIONS.CUSTOMERS_CREATE,
     PERMISSIONS.CUSTOMERS_UPDATE,
     PERMISSIONS.CUSTOMERS_DELETE,
+    PERMISSIONS.KB_READ,
+    PERMISSIONS.KB_MANAGE,
+    PERMISSIONS.REPORTS_READ,
+    PERMISSIONS.ADMIN_MANAGE,
+    PERMISSIONS.AUDIT_READ,
+    PERMISSIONS.SLA_MANAGE,
   ],
   [ROLE_CODES.SUPERVISOR]: [
     PERMISSIONS.USERS_READ,
@@ -73,6 +91,9 @@ export const ROLE_PERMISSION_MAP: Record<RoleCode, PermissionCode[]> = {
     PERMISSIONS.CUSTOMERS_READ,
     PERMISSIONS.CUSTOMERS_CREATE,
     PERMISSIONS.CUSTOMERS_UPDATE,
+    PERMISSIONS.KB_READ,
+    PERMISSIONS.KB_MANAGE,
+    PERMISSIONS.REPORTS_READ,
   ],
   [ROLE_CODES.AGENT]: [
     PERMISSIONS.TICKETS_READ,
@@ -81,8 +102,11 @@ export const ROLE_PERMISSION_MAP: Record<RoleCode, PermissionCode[]> = {
     PERMISSIONS.CUSTOMERS_READ,
     PERMISSIONS.CUSTOMERS_CREATE,
     PERMISSIONS.CUSTOMERS_UPDATE,
+    PERMISSIONS.KB_READ,
   ],
   [ROLE_CODES.CUSTOMER]: [
     PERMISSIONS.TICKETS_READ,
+    PERMISSIONS.TICKETS_CREATE,
+    PERMISSIONS.KB_READ,
   ],
 };

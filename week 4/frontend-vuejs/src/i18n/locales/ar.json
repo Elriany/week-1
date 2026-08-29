@@ -13,16 +13,34 @@
     "filters": "المرشحات",
     "clearAll": "مسح الكل",
     "note": "ملاحظة",
-    "optional": "اختياري"
+    "optional": "اختياري",
+    "closeDialog": "إغلاق مربع الحوار",
+    "showFilters": "إظهار عوامل التصفية",
+    "hideFilters": "إخفاء عوامل التصفية"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
-    "about": "حول",
     "users": "المستخدمون",
     "customers": "العملاء",
     "tickets": "التذاكر",
+    "reports": "التقارير",
     "roles": "الأدوار",
-    "notFound": "غير موجود"
+    "kb": "مركز المساعدة",
+    "myTickets": "تذاكري",
+    "newRequest": "طلب جديد",
+    "admin": "الإدارة",
+    "sla": "سياسات اتفاقية مستوى الخدمة",
+    "audit": "سجل التدقيق",
+    "notFound": "غير موجود",
+    "toggleMenu": "تبديل قائمة التنقل",
+    "breadcrumbLabel": "مسار التنقل",
+    "groups": {
+      "work": "العمل",
+      "knowledge": "المعرفة",
+      "admin": "الإدارة"
+    },
+    "deniedBanner": "ليس لديك إذن لفتح تلك الصفحة.",
+    "dismiss": "إخفاء"
   },
   "auth": {
     "subtitle": "سجّل الدخول للمتابعة",
@@ -67,6 +85,7 @@
       "email": "البريد الإلكتروني",
       "role": "الدور",
       "status": "الحالة",
+      "customer": "العميل",
       "actions": "الإجراءات"
     },
     "status": {
@@ -79,6 +98,18 @@
     },
     "errors": {
       "emailTaken": "يوجد مستخدم بهذا البريد الإلكتروني بالفعل"
+    },
+    "link": {
+      "action": "ربط عميل",
+      "title": "ربط عميل",
+      "search": "ابحث عن عملاء",
+      "current": "مرتبط حالياً بـ",
+      "unlink": "إلغاء الربط",
+      "none": "غير مرتبط",
+      "alreadyLinked": "هذا العميل مرتبط بالفعل بحساب آخر",
+      "notCustomerRole": "يمكن ربط المستخدمين ذوي دور العميل فقط",
+      "inactiveCustomer": "هذا العميل غير موجود أو غير نشط",
+      "success": "تم تحديث ربط العميل"
     }
   },
   "roles": {
@@ -92,57 +123,91 @@
   "app": {
     "title": "نظام إدارة دعم العملاء AZM"
   },
-  "section": {
-    "welcome": "أهلا وسهلا",
-    "features": "الميزات",
-    "quickStats": "الإحصائيات السريعة",
-    "nextSteps": "الخطوات التالية",
-    "about": "حول",
-    "systemHealth": "صحة النظام"
+  "dashboard": {
+    "title": "مساحة عملي",
+    "refresh": "تحديث",
+    "myOpen": "تذاكري المفتوحة",
+    "myBreached": "تذاكري المخالفة",
+    "unassigned": "غير مُسندة",
+    "branchOpen": "مفتوحة في الفرع",
+    "section": {
+      "byStatus": "تذاكري حسب الحالة",
+      "byPriority": "تذاكري حسب الأولوية",
+      "sla": "تفصيل اتفاقية مستوى الخدمة"
+    },
+    "sla": {
+      "noPolicy": "لا توجد سياسة مُعدّة",
+      "noPolicyHint": "هذه الأولويات ليس لديها سياسة اتفاقية مستوى خدمة مُعدّة، لذا لا يوجد هدف ينطبق."
+    },
+    "empty": {
+      "title": "لا يوجد شيء لعرضه",
+      "description": "ستمتلئ مساحة عملك مع إنشاء التذاكر وإسنادها."
+    }
+  },
+  "reports": {
+    "title": "التقرير الإداري",
+    "apply": "تطبيق",
+    "allTime": "كل الأوقات",
+    "rangeLabel": "عرض من {from} إلى {to}",
+    "from": "من",
+    "to": "إلى",
+    "totals": {
+      "total": "الإجمالي",
+      "open": "مفتوحة",
+      "closed": "مغلقة",
+      "unassigned": "غير مُسندة"
+    },
+    "section": {
+      "byStatus": "حسب الحالة",
+      "byPriority": "حسب الأولوية",
+      "byCategory": "حسب الفئة",
+      "byChannel": "حسب القناة",
+      "workload": "عبء عمل الوكلاء",
+      "resolution": "إحصاءات الحل",
+      "sla": "مؤشرات اتفاقية مستوى الخدمة"
+    },
+    "columns": {
+      "label": "التسمية",
+      "count": "العدد",
+      "percent": "النسبة",
+      "agent": "الوكيل",
+      "open": "مفتوحة",
+      "resolved": "تم الحل",
+      "breached": "مخالفة"
+    },
+    "uncategorized": "بدون تصنيف",
+    "unknownAgent": "مستخدم محذوف",
+    "resolution": {
+      "count": "تم الحل",
+      "average": "المتوسط",
+      "median": "الوسيط",
+      "minutes": "دقيقة",
+      "noData": "لا توجد بيانات"
+    },
+    "errors": {
+      "invalidRange": "نطاق التاريخ غير صالح — يجب ألا يكون \"من\" بعد \"إلى\""
+    },
+    "empty": {
+      "title": "لا توجد بيانات",
+      "description": "لا توجد تذاكر تطابق هذا النطاق."
+    },
+    "subtitle": "حجم التذاكر وأوقات الحل وعبء العمل حسب الوكيل."
   },
   "content": {
-    "welcome": {
-      "description": "مرحبا بك في نظام إدارة دعم العملاء AZM. ابدأ باستكشاف الميزات وإدارة تذاكرك بكفاءة."
-    },
-    "about": {
-      "description": "هذه صفحة حول النظام. تعرض حالة صحة النظام ومعلومات عن التطبيق."
-    },
-    "pageNotFoundDescription": "الصفحة التي تبحث عنها غير موجودة.",
-    "noDataAvailable": "لا توجد بيانات متاحة في الوقت الحالي."
+    "pageNotFoundDescription": "الصفحة التي تبحث عنها غير موجودة."
   },
   "action": {
-    "getStarted": "ابدأ الآن",
-    "loadData": "تحميل البيانات",
     "backToDashboard": "العودة إلى لوحة التحكم",
     "switchLanguage": "تبديل اللغة"
   },
-  "feature": {
-    "ticketManagement": "إدارة التذاكر",
-    "customerTracking": "تتبع العملاء",
-    "analyticsReports": "التقارير التحليلية",
-    "teamCollaboration": "التعاون الفريقي"
-  },
-  "step": {
-    "setupAccount": "قم بإعداد حسابك",
-    "configureTeam": "قم بإعداد فريقك",
-    "exploreFeatures": "استكشف جميع الميزات"
-  },
   "status": {
-    "activeTickets": "التذاكر النشطة",
-    "totalUsers": "إجمالي المستخدمين",
     "loading": "جاري التحميل",
-    "status": "الحالة",
-    "noData": "لا توجد بيانات"
-  },
-  "info": {
-    "timestamp": "الوقت والتاريخ",
-    "environment": "البيئة"
+    "status": "الحالة"
   },
   "errors": {
     "unreachable": "لا يمكن الوصول إلى الخادم",
     "notFound": "الصفحة غير موجودة",
     "forbidden": "ليس لديك صلاحية لتنفيذ هذا الإجراء",
-    "loadingHealth": "فشل تحميل صحة النظام",
     "networkError": "خطأ في الشبكة"
   },
   "ticket": {
@@ -200,6 +265,7 @@
       "title": "ملف العميل",
       "edit": "تعديل",
       "backToList": "العودة إلى العملاء",
+      "viewTickets": "عرض التذاكر",
       "notFound": {
         "title": "العميل غير موجود",
         "description": "هذا العميل غير موجود أو تم حذفه."
@@ -216,7 +282,8 @@
       "empty": {
         "title": "لا توجد جهات اتصال بعد",
         "description": "أضف جهة اتصال للبدء."
-      }
+      },
+      "jobTitle": "المسمى الوظيفي"
     },
     "notes": {
       "title": "الملاحظات",
@@ -281,6 +348,7 @@
     "columns": {
       "number": "رقم التذكرة",
       "subject": "الموضوع",
+      "description": "الوصف",
       "status": "الحالة",
       "priority": "الأولوية",
       "category": "الفئة",
@@ -295,7 +363,8 @@
       "allPriorities": "جميع الأولويات",
       "allCategories": "جميع الفئات",
       "allAssignees": "جميع المسندين",
-      "unassigned": "غير مُسند"
+      "unassigned": "غير مُسند",
+      "allSla": "جميع حالات اتفاقية مستوى الخدمة"
     },
     "sort": {
       "asc": "تصاعدي",
@@ -323,7 +392,8 @@
       "selectCustomer": "اختر عميلاً",
       "selectDepartment": "اختر قسماً",
       "selectPriority": "اختر أولوية",
-      "selectCategory": "اختر فئة"
+      "selectCategory": "اختر فئة",
+      "descriptionPlaceholder": "صف المشكلة بأكبر قدر ممكن من التفاصيل"
     },
     "notes": {
       "title": "الملاحظات",
@@ -396,6 +466,247 @@
       "invalidTransition": "هذا التغيير في الحالة غير مسموح",
       "tooLarge": "الملف يتجاوز الحد الأقصى للحجم",
       "unsupportedType": "نوع الملف غير مدعوم"
+    },
+    "sla": {
+      "label": "اتفاقية مستوى الخدمة",
+      "responseDue": "موعد الاستجابة",
+      "resolutionDue": "موعد الحل",
+      "respondedAt": "وقت الاستجابة",
+      "resolvedAt": "وقت الحل",
+      "noPolicy": "لا توجد سياسة اتفاقية مستوى خدمة مُعدّة لهذه الأولوية.",
+      "status": {
+        "ON_TRACK": "ضمن الوقت",
+        "AT_RISK": "في خطر",
+        "BREACHED": "مخالف",
+        "MET": "محقق"
+      }
     }
+  },
+  "kb": {
+    "title": "مركز المساعدة",
+    "search": "ابحث في المقالات",
+    "allCategories": "جميع الفئات",
+    "includeDrafts": "تضمين المسودات",
+    "newArticle": "مقالة جديدة",
+    "draft": "مسودة",
+    "published": "منشورة",
+    "article": {
+      "back": "العودة إلى مركز المساعدة",
+      "edit": "تعديل",
+      "publish": "نشر",
+      "unpublish": "إلغاء النشر",
+      "delete": "حذف",
+      "confirmDelete": "حذف المقالة",
+      "viewIn": "عرض باللغة",
+      "updated": "آخر تحديث",
+      "notFound": "المقالة غير موجودة",
+      "notFoundHint": "هذه المقالة غير موجودة أو غير منشورة."
+    },
+    "form": {
+      "titleEn": "العنوان (بالإنجليزية)",
+      "titleAr": "العنوان (بالعربية)",
+      "bodyEn": "المحتوى (بالإنجليزية)",
+      "bodyAr": "المحتوى (بالعربية)",
+      "category": "الفئة",
+      "noCategory": "بدون فئة",
+      "sortOrder": "ترتيب العرض",
+      "save": "حفظ",
+      "cancel": "إلغاء"
+    },
+    "empty": {
+      "title": "لا توجد مقالات بعد",
+      "description": "ستظهر المقالات المنشورة هنا."
+    },
+    "noResults": {
+      "title": "لم يتم العثور على مقالات",
+      "description": "حاول تعديل بحثك أو مرشحاتك."
+    },
+    "panel": {
+      "title": "قاعدة المعرفة",
+      "search": "ابحث في مركز المساعدة",
+      "openArticle": "فتح المقالة",
+      "noResults": "لا توجد مقالات مطابقة"
+    },
+    "subtitle": "المقالات المنشورة التي يمكن للوكلاء والعملاء البحث فيها."
+  },
+  "portal": {
+    "title": "تذاكري",
+    "newRequest": "طلب جديد",
+    "backToList": "العودة إلى تذاكري",
+    "columns": {
+      "number": "رقم التذكرة",
+      "subject": "الموضوع",
+      "status": "الحالة",
+      "sla": "اتفاقية مستوى الخدمة",
+      "created": "تم الإنشاء",
+      "updated": "آخر تحديث"
+    },
+    "empty": {
+      "title": "لا توجد تذاكر بعد",
+      "description": "ستظهر الطلبات التي تقدمها هنا."
+    },
+    "noResults": {
+      "title": "لم يتم العثور على تذاكر",
+      "description": "حاول تعديل بحثك."
+    },
+    "unlinked": {
+      "title": "الحساب غير مرتبط",
+      "description": "هذا الحساب غير مرتبط بسجل عميل. يرجى التواصل مع الدعم لربط حسابك."
+    },
+    "detail": {
+      "title": "تفاصيل التذكرة",
+      "description": "الوصف",
+      "notFound": "التذكرة غير موجودة",
+      "notFoundHint": "هذه التذكرة غير موجودة أو غير مرتبطة بحسابك.",
+      "helpCentre": "مركز المساعدة"
+    },
+    "reply": {
+      "title": "رد",
+      "placeholder": "أضف رداً...",
+      "submit": "إرسال الرد",
+      "success": "تمت إضافة ردك."
+    },
+    "form": {
+      "subject": "الموضوع",
+      "description": "الوصف",
+      "category": "الفئة",
+      "priority": "الأولوية",
+      "submit": "إرسال الطلب",
+      "successTitle": "تم إرسال الطلب",
+      "successBody": "تم إنشاء تذكرتك {number}. جارٍ التحويل إلى تفاصيل التذكرة…",
+      "configError": "هذا الفرع غير مهيأ بعد لاستقبال الطلبات. يرجى التواصل مع الدعم مباشرة."
+    },
+    "priority": {
+      "LOW": "منخفضة",
+      "MEDIUM": "متوسطة",
+      "HIGH": "عالية",
+      "URGENT": "عاجلة"
+    }
+  },
+  "admin": {
+    "title": "الإدارة",
+    "tabs": {
+      "branches": "الفروع",
+      "departments": "الأقسام",
+      "categories": "الفئات",
+      "priorities": "الأولويات",
+      "statuses": "الحالات"
+    },
+    "columns": {
+      "code": "الرمز",
+      "nameEn": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "sortOrder": "ترتيب العرض",
+      "active": "نشط",
+      "branch": "الفرع",
+      "actions": "الإجراءات"
+    },
+    "actions": {
+      "new": "جديد",
+      "edit": "تعديل",
+      "activate": "تفعيل",
+      "deactivate": "تعطيل",
+      "confirmDeactivate": "تأكيد التعطيل",
+      "save": "حفظ",
+      "cancel": "إلغاء"
+    },
+    "statuses": {
+      "note": "حالات التذاكر محددة بمخطط سير العمل ولا يمكن إضافتها أو حذفها."
+    },
+    "branches": {
+      "title": "الفروع",
+      "adminOnlyNote": "يمكن للمسؤول فقط إنشاء الفروع أو تعديلها. يمكنك عرض القائمة."
+    },
+    "departments": {
+      "title": "الأقسام",
+      "allBranches": "جميع الفروع",
+      "selectBranch": "اختر فرعاً",
+      "lockedBranchNote": "يمكنك إدارة أقسام فرعك فقط."
+    },
+    "errors": {
+      "branchInUse": "لا يمكن تعطيل هذا الفرع أثناء وجود مستخدمين نشطين أو تذاكر مفتوحة تابعة له.",
+      "departmentInUse": "لا يمكن تعطيل هذا القسم أثناء وجود مستخدمين نشطين أو تذاكر مفتوحة تابعة له.",
+      "priorityHasSla": "لا يمكن تعطيل هذه الأولوية أثناء استهدافها من سياسة اتفاقية مستوى خدمة نشطة.",
+      "duplicateCode": "هذا الرمز مستخدم بالفعل",
+      "statusImmutable": "لا يمكن إنشاء حالات التذاكر أو تعطيلها"
+    },
+    "empty": {
+      "title": "لا يوجد شيء هنا بعد",
+      "description": "ستظهر الصفوف التي تضيفها هنا."
+    },
+    "subtitle": "إدارة الفروع والأقسام والفئات والأولويات والحالات.",
+    "slaSubtitle": "أهداف الاستجابة والحل المطبقة على التذاكر الجديدة حسب الأولوية."
+  },
+  "sla": {
+    "title": "سياسات اتفاقية مستوى الخدمة",
+    "wallClockNote": "تُقاس الأهداف بالدقائق الفعلية، وليس بساعات العمل.",
+    "minutesHint": "≈ {hours} ساعة",
+    "columns": {
+      "priority": "الأولوية",
+      "responseTarget": "هدف الاستجابة",
+      "resolutionTarget": "هدف الحل",
+      "active": "نشط"
+    },
+    "form": {
+      "responseTargetMinutes": "هدف الاستجابة (بالدقائق)",
+      "resolutionTargetMinutes": "هدف الحل (بالدقائق)",
+      "isActive": "نشط",
+      "save": "حفظ",
+      "cancel": "إلغاء"
+    },
+    "errors": {
+      "resolutionBelowResponse": "يجب أن يكون هدف الحل مساوياً لهدف الاستجابة على الأقل"
+    }
+  },
+  "audit": {
+    "title": "سجل التدقيق",
+    "noDetails": "لا توجد تفاصيل",
+    "columns": {
+      "timestamp": "الوقت",
+      "actor": "الفاعل",
+      "action": "الإجراء",
+      "entityType": "نوع الكيان",
+      "summary": "الملخص",
+      "details": "التفاصيل"
+    },
+    "filter": {
+      "allTypes": "جميع الأنواع",
+      "allActions": "جميع الإجراءات",
+      "allActors": "جميع الفاعلين",
+      "from": "من",
+      "to": "إلى",
+      "apply": "تطبيق",
+      "clear": "مسح"
+    },
+    "action": {
+      "TICKET_CREATED": "تم إنشاء التذكرة",
+      "TICKET_STATUS_CHANGED": "تم تغيير الحالة",
+      "TICKET_ASSIGNED": "تم إسناد التذكرة",
+      "TICKET_UNASSIGNED": "تم إلغاء إسناد التذكرة",
+      "TICKET_PRIORITY_CHANGED": "تم تغيير الأولوية",
+      "CONFIG_CREATED": "تم إنشاء إعداد",
+      "CONFIG_UPDATED": "تم تحديث إعداد",
+      "CONFIG_DEACTIVATED": "تم تعطيل إعداد",
+      "KB_ARTICLE_PUBLISHED": "تم نشر المقالة",
+      "KB_ARTICLE_UNPUBLISHED": "تم إلغاء نشر المقالة",
+      "SLA_POLICY_UPDATED": "تم تحديث سياسة اتفاقية مستوى الخدمة"
+    },
+    "entityType": {
+      "Ticket": "تذكرة",
+      "Branch": "فرع",
+      "Department": "قسم",
+      "TicketCategory": "فئة تذكرة",
+      "TicketPriority": "أولوية تذكرة",
+      "TicketStatus": "حالة تذكرة",
+      "KbArticle": "مقالة قاعدة معرفة",
+      "KbCategory": "فئة قاعدة معرفة",
+      "SlaPolicy": "سياسة اتفاقية مستوى خدمة",
+      "User": "مستخدم"
+    },
+    "empty": {
+      "title": "لا توجد إدخالات تدقيق",
+      "description": "ستظهر الإجراءات المتخذة عبر النظام هنا."
+    },
+    "subtitle": "سجل للقراءة فقط يوضح من غيَّر ماذا ومتى."
   }
 }

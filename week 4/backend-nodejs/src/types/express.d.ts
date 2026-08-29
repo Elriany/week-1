@@ -6,6 +6,8 @@ export interface AuthContext {
   branchId: string;
   departmentId: string;
   permissions: string[];
+  /** Non-null only for an account linked to a Customers row. See Story 15. */
+  customerId: string | null;
 }
 
 declare global {

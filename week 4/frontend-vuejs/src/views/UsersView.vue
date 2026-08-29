@@ -29,14 +29,15 @@
       />
 
       <div v-else class="table-scroll">
-        <table>
+        <table class="data-table">
           <thead>
             <tr>
-              <th>{{ t('users.columns.name') }}</th>
-              <th>{{ t('users.columns.email') }}</th>
-              <th>{{ t('users.columns.role') }}</th>
-              <th>{{ t('users.columns.status') }}</th>
-              <th v-if="auth.can('users.deactivate')">{{ t('users.columns.actions') }}</th>
+              <th scope="col">{{ t('users.columns.name') }}</th>
+              <th scope="col">{{ t('users.columns.email') }}</th>
+              <th scope="col">{{ t('users.columns.role') }}</th>
+              <th scope="col">{{ t('users.columns.status') }}</th>
+              <th scope="col">{{ t('users.columns.customer') }}</th>
+              <th scope="col" v-if="auth.can('users.deactivate') || auth.can('admin.manage')">{{ t('users.columns.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -50,23 +51,69 @@
                   :label="row.isActive ? t('users.status.active') : t('users.status.inactive')"
                 />
               </td>
-              <td v-if="auth.can('users.deactivate')">
-                <BaseButton
-                  v-if="row.id !== auth.user?.id"
-                  :variant="row.isActive ? 'secondary' : 'primary'"
-                  size="sm"
-                  type="button"
-                  :loading="pendingId === row.id"
-                  @click="toggleActive(row)"
-                >
-                  {{ row.isActive ? t('users.deactivate') : t('users.activate') }}
-                </BaseButton>
+              <td>{{ row.customerId ? customerNames.get(row.customerId) ?? row.customerId : '—' }}</td>
+              <td v-if="auth.can('users.deactivate') || auth.can('admin.manage')">
+                <div class="actions">
+                  <BaseButton
+                    v-if="auth.can('users.deactivate') && row.id !== auth.user?.id"
+                    :variant="row.isActive ? 'secondary' : 'primary'"
+                    size="sm"
+                    type="button"
+                    :loading="pendingId === row.id"
+                    @click="toggleActive(row)"
+                  >
+                    {{ row.isActive ? t('users.deactivate') : t('users.activate') }}
+                  </BaseButton>
+                  <BaseButton
+                    v-if="auth.can('admin.manage') && row.role?.code === 'CUSTOMER'"
+                    variant="secondary"
+                    size="sm"
+                    type="button"
+                    @click="openLink(row)"
+                  >
+                    {{ t('users.link.action') }}
+                  </BaseButton>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </BaseCard>
+
+    <!-- Link Customer Dialog -->
+    <BaseDialog :is-open="showLink" :title="t('users.link.title')" @close="showLink = false">
+      <div class="link-dialog">
+        <p v-if="linkTarget?.customerId" class="current-link">
+          {{ t('users.link.current') }}: <strong>{{ customerNames.get(linkTarget.customerId) ?? linkTarget.customerId }}</strong>
+          <BaseButton variant="danger" size="sm" type="button" :loading="linking" @click="submitUnlink">
+            {{ t('users.link.unlink') }}
+          </BaseButton>
+        </p>
+        <p v-else class="current-link">{{ t('users.link.none') }}</p>
+
+        <BaseInput v-model="linkSearch" type="search" :label="t('users.link.search')" />
+
+        <div v-if="linkResults.length > 0" class="link-results">
+          <button
+            v-for="customer in linkResults"
+            :key="customer.id"
+            type="button"
+            class="link-result"
+            @click="submitLink(customer)"
+          >
+            {{ displayCustomerName(customer) }}
+          </button>
+        </div>
+
+        <p v-if="linkError" class="error-text" role="alert">{{ linkError }}</p>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" size="md" type="button" @click="showLink = false">
+          {{ t('common.cancel') }}
+        </BaseButton>
+      </template>
+    </BaseDialog>
 
     <!-- Add User Dialog -->
     <BaseDialog
@@ -113,12 +160,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api } from '@/api/client'
 import { ApiError } from '@/types/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { useLocalizedName } from '@/composables/useLocalizedName'
+import { useApiError } from '@/composables/useApiError'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -137,6 +185,13 @@ interface UserRow {
   departmentId: string
   roleId: string
   role?: { id: string; code: string; nameEn: string; nameAr: string }
+  customerId: string | null
+}
+
+interface CustomerOption {
+  id: string
+  fullNameEn: string
+  fullNameAr: string
 }
 
 interface RoleRow {
@@ -150,6 +205,7 @@ interface RoleRow {
 const { t } = useI18n()
 const auth = useAuthStore()
 const localizedName = useLocalizedName()
+const { messageFor: messageForBase } = useApiError()
 
 const users = ref<UserRow[]>([])
 const roles = ref<RoleRow[]>([])
@@ -169,17 +225,19 @@ const form = reactive({
   roleId: '',
 })
 
+const customerNames = ref<Map<string, string>>(new Map())
+
 function displayName(row: UserRow): string {
   return localizedName({ nameEn: row.fullNameEn, nameAr: row.fullNameAr })
 }
 
+function displayCustomerName(customer: CustomerOption): string {
+  return localizedName({ nameEn: customer.fullNameEn, nameAr: customer.fullNameAr })
+}
+
+const ERROR_OVERRIDES = { 409: 'users.errors.emailTaken' }
 function messageFor(err: unknown): string {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return t('errors.forbidden')
-    if (err.status === 409) return t('users.errors.emailTaken')
-    return err.serverMessage ?? t('errors.unreachable')
-  }
-  return t('errors.unreachable')
+  return messageForBase(err, ERROR_OVERRIDES)
 }
 
 async function loadUsers() {
@@ -188,11 +246,27 @@ async function loadUsers() {
   try {
     const response = await api.get('/users')
     users.value = response.data
+    await loadCustomerNames()
   } catch (err) {
     loadError.value = messageFor(err)
   } finally {
     loading.value = false
   }
+}
+
+/** Best-effort — the list endpoint carries only the linked customer's id, and
+ * a name lookup failing (e.g. no customers.read) must not break the user list. */
+async function loadCustomerNames() {
+  const ids = [...new Set(users.value.map(u => u.customerId).filter((id): id is string => Boolean(id)))]
+  const missing = ids.filter(id => !customerNames.value.has(id))
+  if (missing.length === 0) return
+
+  const results = await Promise.allSettled(missing.map(id => api.get(`/customers/${id}`)))
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      customerNames.value.set(missing[index]!, displayCustomerName(result.value.data))
+    }
+  })
 }
 
 async function loadRoles() {
@@ -250,10 +324,88 @@ async function toggleActive(row: UserRow) {
   }
 }
 
+const showLink = ref(false)
+const linkTarget = ref<UserRow | null>(null)
+const linkSearch = ref('')
+const linkResults = ref<CustomerOption[]>([])
+const linkError = ref('')
+const linking = ref(false)
+let linkSearchTimer: ReturnType<typeof setTimeout> | undefined
+
+function openLink(row: UserRow) {
+  linkTarget.value = row
+  linkSearch.value = ''
+  linkResults.value = []
+  linkError.value = ''
+  showLink.value = true
+}
+
+async function searchLinkCustomers() {
+  if (!linkSearch.value.trim()) {
+    linkResults.value = []
+    return
+  }
+  try {
+    const response = await api.get(`/customers?q=${encodeURIComponent(linkSearch.value.trim())}&pageSize=10`)
+    linkResults.value = response.data.items
+  } catch {
+    linkResults.value = []
+  }
+}
+
+watch(linkSearch, () => {
+  clearTimeout(linkSearchTimer)
+  linkSearchTimer = setTimeout(searchLinkCustomers, 300)
+})
+
+function linkErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 409) return t('users.link.alreadyLinked')
+    if (err.status === 422) {
+      const details = err.details as Record<string, unknown> | undefined
+      if (details && 'userId' in details) return t('users.link.notCustomerRole')
+      if (details && 'customerId' in details) return t('users.link.inactiveCustomer')
+    }
+  }
+  return messageFor(err)
+}
+
+async function submitLink(customer: CustomerOption) {
+  if (!linkTarget.value) return
+  linkError.value = ''
+  linking.value = true
+  try {
+    await api.patch(`/users/${linkTarget.value.id}/customer`, { customerId: customer.id })
+    showLink.value = false
+    await loadUsers()
+  } catch (err) {
+    linkError.value = linkErrorMessage(err)
+  } finally {
+    linking.value = false
+  }
+}
+
+async function submitUnlink() {
+  if (!linkTarget.value) return
+  linkError.value = ''
+  linking.value = true
+  try {
+    await api.patch(`/users/${linkTarget.value.id}/customer`, { customerId: null })
+    showLink.value = false
+    await loadUsers()
+  } catch (err) {
+    linkError.value = linkErrorMessage(err)
+  } finally {
+    linking.value = false
+  }
+}
+
 onMounted(() => {
   loadUsers()
   loadRoles()
 })
+
+onUnmounted(() => clearTimeout(linkSearchTimer))
 </script>
 
 <style scoped>
@@ -293,32 +445,52 @@ onMounted(() => {
   overflow-x: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: var(--spacing-3);
-  text-align: start;
-  border-bottom: 1px solid var(--color-gray-200);
-  white-space: nowrap;
-}
-
-th {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-gray-700);
-}
-
-td {
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-900);
-}
 
 .mono {
   font-family: monospace;
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-2);
+  white-space: normal;
+}
+
+.link-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.current-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.link-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.link-result {
+  text-align: start;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.link-result:hover {
+  background-color: var(--color-gray-50);
+  border-color: var(--color-primary);
 }
 
 .create-form,

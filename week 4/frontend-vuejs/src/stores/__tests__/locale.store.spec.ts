@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useLocaleStore } from '../locale.store'
-import { i18n } from '@/i18n'
 
 describe('locale store', () => {
   beforeEach(() => {

@@ -3,12 +3,14 @@ import { BaseEntity } from '../../common/entities/BaseEntity';
 import { Branch } from '../branches/branch.entity';
 import { Department } from '../departments/department.entity';
 import { Role } from './role.entity';
+import { Customer } from '../customers/customer.entity';
 
 @Entity('Users')
 @Index(['branchId'])
 @Index(['departmentId'])
 @Index(['roleId'])
 @Index(['email'], { unique: true })
+@Index(['customerId'])
 @Index(['branchId', 'departmentId'])
 export class User extends BaseEntity {
   @Column({ type: 'uniqueidentifier' })
@@ -51,4 +53,16 @@ export class User extends BaseEntity {
 
   @Column({ type: 'bit', default: true })
   isActive!: boolean;
+
+  /**
+   * Links a CUSTOMER-role login to the Customers row whose tickets it owns.
+   * NULL for every staff account. A CUSTOMER-role account with a NULL value can
+   * reach nothing in the portal — that is deliberate; see Story 18.
+   */
+  @Column({ type: 'uniqueidentifier', nullable: true })
+  customerId?: string | null;
+
+  @ManyToOne(() => Customer, { eager: false, onDelete: 'NO ACTION' })
+  @JoinColumn({ name: 'customerId' })
+  customer?: Customer | null;
 }

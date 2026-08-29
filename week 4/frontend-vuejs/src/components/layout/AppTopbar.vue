@@ -8,11 +8,13 @@
       >
         ☰
       </button>
-      <h2 class="title">{{ t(currentPageTitle) }}</h2>
+      <div class="heading">
+        <AppBreadcrumb />
+        <h2 class="title">{{ t(currentPageTitle) }}</h2>
+      </div>
     </div>
     <div class="right">
       <LanguageSwitcher />
-      <slot name="actions" />
       <div v-if="auth.user" class="account">
         <span class="account-name">{{ accountName }}</span>
         <BaseBadge v-if="roleLabel" variant="primary" :label="roleLabel" />
@@ -32,6 +34,7 @@ import { useAppStore } from '@/stores/app.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { useLocalizedName } from '@/composables/useLocalizedName'
 import LanguageSwitcher from '@/components/common/LanguageSwitcher.vue'
+import AppBreadcrumb from '@/components/layout/AppBreadcrumb.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 
@@ -59,7 +62,7 @@ const currentPageTitle = computed(() => {
   return (route.meta.titleKey as string) || ''
 })
 
-const menuButtonLabel = computed(() => 'Toggle menu')
+const menuButtonLabel = computed(() => t('nav.toggleMenu'))
 </script>
 
 <style scoped>
@@ -68,7 +71,7 @@ const menuButtonLabel = computed(() => 'Toggle menu')
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-4) var(--spacing-6);
-  background-color: white;
+  background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-gray-200);
   box-shadow: var(--shadow-sm);
 }
@@ -92,6 +95,12 @@ const menuButtonLabel = computed(() => 'Toggle menu')
 
 .menu-button:hover {
   color: var(--color-gray-900);
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .title {
@@ -123,9 +132,7 @@ const menuButtonLabel = computed(() => 'Toggle menu')
   .account-name {
     display: none;
   }
-}
 
-@media (max-width: 768px) {
   .menu-button {
     display: block;
   }

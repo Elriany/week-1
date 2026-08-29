@@ -6,6 +6,14 @@ import { NotFoundError } from '../../common/errors/AppError';
 import { CustomerAttachment } from './customerAttachment.entity';
 import { ownerDir } from '../../common/uploads/attachments.upload';
 
+/** The uploader fields this module renders. Narrower than `User` on purpose:
+ *  the create path knows the id before it has the names. */
+export interface AttachmentUploader {
+  id: string;
+  fullNameEn: string;
+  fullNameAr: string;
+}
+
 export interface PublicAttachment {
   id: string;
   customerId: string;
@@ -14,10 +22,19 @@ export interface PublicAttachment {
   mimeType: string;
   sizeBytes: string;
   createdAt: Date;
-  uploadedBy: { id: string; fullNameEn: string; fullNameAr: string } | null;
+  uploadedBy: AttachmentUploader | null;
 }
 
-export function toPublicAttachment(a: CustomerAttachment & { uploadedBy?: { id: string; fullNameEn: string; fullNameAr: string } | null }): PublicAttachment {
+export function toPublicAttachment(a: {
+  id: string;
+  customerId: string;
+  originalName: string;
+  storedName: string;
+  mimeType: string;
+  sizeBytes: string;
+  createdAt: Date;
+  uploadedBy?: AttachmentUploader | null;
+}): PublicAttachment {
   return {
     id: a.id,
     customerId: a.customerId,
@@ -52,7 +69,7 @@ export async function listAttachments(customerId: string): Promise<PublicAttachm
     .orderBy('a.createdAt', 'DESC')
     .getMany();
 
-  return rows.map(r => toPublicAttachment(r as any));
+  return rows.map(r => toPublicAttachment(r));
 }
 
 export async function createAttachment(

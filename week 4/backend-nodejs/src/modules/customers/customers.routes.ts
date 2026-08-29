@@ -17,19 +17,9 @@ import {
   updateContactSchema,
   noteBodySchema,
   customerChildParamSchema,
+  customerHistoryQuerySchema,
 } from './customerChildren.schemas';
-import { handleCustomerUpload, ownerDir, UPLOAD_ROOT } from '../../common/uploads/attachments.upload';
-import {
-  listAttachments,
-  createAttachment,
-  findAttachmentById,
-  softDeleteAttachment,
-  toPublicAttachment,
-} from './customerAttachments.service';
-import { getHistory } from './customerHistory.service';
-import path from 'node:path';
-import fs from 'node:fs';
-import { ForbiddenError, NotFoundError } from '../../common/errors/AppError';
+import { handleCustomerUpload } from '../../common/uploads/attachments.upload';
 import { ROLE_CODES } from '../users/permissions.constants';
 
 const router = Router();
@@ -475,16 +465,7 @@ router.get(
   '/:id/attachments',
   authorize(PERMISSIONS.CUSTOMERS_READ),
   validate({ params: customerIdParamSchema }),
-  async (req, res, next) => {
-    try {
-      const { requireCustomerInScope } = await import('./customerChildren.controller');
-      await requireCustomerInScope(req);
-      const result = await listAttachments(req.params.id);
-      res.json({ success: true, data: result, correlationId: req.id });
-    } catch (err) {
-      next(err);
-    }
-  },
+  customerChildrenController.listAttachments,
 );
 
 /**
@@ -519,17 +500,7 @@ router.post(
   authorize(PERMISSIONS.CUSTOMERS_UPDATE),
   validate({ params: customerIdParamSchema }),
   handleCustomerUpload,
-  async (req, res, next) => {
-    try {
-      const { requireCustomerInScope } = await import('./customerChildren.controller');
-      await requireCustomerInScope(req);
-      if (!req.file) throw new NotFoundError('No file uploaded');
-      const result = await createAttachment(req.params.id, req.auth!.userId, req.file);
-      res.status(201).json({ success: true, data: result, correlationId: req.id });
-    } catch (err) {
-      next(err);
-    }
-  },
+  customerChildrenController.createAttachment,
 );
 
 /**
@@ -556,27 +527,7 @@ router.get(
   '/:id/attachments/:childId/download',
   authorize(PERMISSIONS.CUSTOMERS_READ),
   validate({ params: customerChildParamSchema }),
-  async (req, res, next) => {
-    try {
-      const { requireCustomerInScope } = await import('./customerChildren.controller');
-      const customer = await requireCustomerInScope(req);
-      const attachment = await findAttachmentById(req.params.childId);
-
-      if (attachment.customerId !== customer.id) throw new NotFoundError('Attachment');
-
-      const filePath = path.resolve(ownerDir('customers', customer.id), attachment.storedName);
-      if (!filePath.startsWith(ownerDir('customers', customer.id) + path.sep)) {
-        throw new NotFoundError('Attachment');
-      }
-      if (!fs.existsSync(filePath)) throw new NotFoundError('Attachment');
-
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('Content-Type', attachment.mimeType);
-      res.download(filePath, attachment.originalName);
-    } catch (err) {
-      next(err);
-    }
-  },
+  customerChildrenController.downloadAttachment,
 );
 
 /**
@@ -603,16 +554,7 @@ router.delete(
   '/:id/attachments/:childId',
   authorize(PERMISSIONS.CUSTOMERS_UPDATE),
   validate({ params: customerChildParamSchema }),
-  async (req, res, next) => {
-    try {
-      const { requireCustomerInScope } = await import('./customerChildren.controller');
-      await requireCustomerInScope(req);
-      await softDeleteAttachment(req.params.childId);
-      res.status(204).send();
-    } catch (err) {
-      next(err);
-    }
-  },
+  customerChildrenController.deleteAttachment,
 );
 
 // History
@@ -642,19 +584,8 @@ router.delete(
 router.get(
   '/:id/history',
   authorize(PERMISSIONS.CUSTOMERS_READ),
-  validate({ params: customerIdParamSchema }),
-  async (req, res, next) => {
-    try {
-      const { requireCustomerInScope } = await import('./customerChildren.controller');
-      await requireCustomerInScope(req);
-      const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 20));
-      const result = await getHistory(req.params.id, page, pageSize);
-      res.json({ success: true, data: result, correlationId: req.id });
-    } catch (err) {
-      next(err);
-    }
-  },
+  validate({ params: customerIdParamSchema, query: customerHistoryQuerySchema }),
+  customerChildrenController.getHistory,
 );
 
 export default router;

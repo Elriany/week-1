@@ -7,11 +7,13 @@ export interface AuthUser {
   email: string;
   fullNameEn: string;
   fullNameAr: string;
-  isActive: boolean;
+  isActive?: boolean;
   branchId: string;
-  departmentId: string;
-  roleId: string;
+  departmentId?: string;
+  roleId?: string;
   role?: { id: string; code: string; nameEn: string; nameAr: string };
+  /** Non-null only for an account linked to a Customers row. */
+  customerId?: string | null;
 }
 
 const ACCESS_TOKEN_KEY = 'azm-crm-access-token';

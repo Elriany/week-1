@@ -1,9 +1,13 @@
 import bcrypt from 'bcryptjs';
 import { AppDataSource } from '../../config/data-source';
 import { env } from '../../config/env';
-import { ConflictError, NotFoundError } from '../../common/errors/AppError';
+import { ConflictError, NotFoundError, ValidationError } from '../../common/errors/AppError';
 import { User } from './user.entity';
 import { Role } from './role.entity';
+import { ROLE_CODES } from './permissions.constants';
+import { Customer } from '../customers/customer.entity';
+import { recordAudit } from '../../common/audit/audit.service';
+import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES } from '../../common/audit/audit.constants';
 
 /** The shape returned to clients. Never carries `passwordHash`. */
 export interface PublicUser {
@@ -16,6 +20,7 @@ export interface PublicUser {
   departmentId: string;
   roleId: string;
   role?: { id: string; code: string; nameEn: string; nameAr: string };
+  customerId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +63,7 @@ export function toPublicUser(user: User): PublicUser {
     role: user.role
       ? { id: user.role.id, code: user.role.code, nameEn: user.role.nameEn, nameAr: user.role.nameAr }
       : undefined,
+    customerId: user.customerId ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -168,4 +174,53 @@ export async function setUserActive(id: string, isActive: boolean): Promise<Publ
 
 export async function listRoles(): Promise<Role[]> {
   return roles().find({ relations: { permissions: true }, order: { nameEn: 'ASC' } });
+}
+
+/**
+ * Links or clears a user's Customers row — the operation the whole customer
+ * portal depends on. Unlinking (customerId: null) is always allowed; it is
+ * the recovery path for a mistake and must never be blocked.
+ */
+export async function linkCustomer(userId: string, customerId: string | null, actorUserId: string): Promise<PublicUser> {
+  const user = await findById(userId);
+
+  if (customerId === null) {
+    user.customerId = null;
+    await users().save(user);
+    return toPublicUser(await findById(userId));
+  }
+
+  if (user.role?.code !== ROLE_CODES.CUSTOMER) {
+    throw new ValidationError({ userId: 'Only a CUSTOMER-role user can be linked to a customer' });
+  }
+
+  const customer = await AppDataSource.getRepository(Customer).findOne({ where: { id: customerId } });
+  if (!customer || !customer.isActive) {
+    throw new ValidationError({ customerId: 'Customer does not exist or is not active' });
+  }
+
+  // Checked explicitly rather than letting UX_Users_customerId surface as a
+  // driver-level 500 — the index is the backstop, this is the error message.
+  const alreadyLinked = await users().findOne({ where: { customerId } });
+  if (alreadyLinked && alreadyLinked.id !== userId) {
+    throw new ConflictError('This customer is already linked to another account');
+  }
+
+  await AppDataSource.transaction(async manager => {
+    user.customerId = customerId;
+    await manager.save(User, user);
+
+    await recordAudit(manager, {
+      actorUserId,
+      action: AUDIT_ACTIONS.CONFIG_UPDATED,
+      entityType: AUDIT_ENTITY_TYPES.USER,
+      entityId: userId,
+      summary: `Linked to customer ${customer.code}`,
+    });
+  });
+
+  // findById opens its own connection — it must run after the transaction
+  // commits, or it deadlocks against the still-uncommitted update (see
+  // Story 15's note on the same pattern in tickets.service.ts).
+  return toPublicUser(await findById(userId));
 }

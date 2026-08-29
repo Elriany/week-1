@@ -17,7 +17,7 @@ function isUnscoped(req: Parameters<RequestHandler>[0]): boolean {
 }
 
 export const customersController = {
-  list: async (req, res, next) => {
+  list: (async (req, res, next) => {
     try {
       let filter: ListCustomersFilter = {
         q: req.query.q as string | undefined,
@@ -35,14 +35,14 @@ export const customersController = {
       return res.json({
         success: true,
         data: result,
-        correlationId: req.id,
+        correlationId: req.correlationId,
       });
     } catch (err) {
       next(err);
     }
-  },
+  }) as RequestHandler,
 
-  getOne: async (req, res, next) => {
+  getOne: (async (req, res, next) => {
     try {
       const customer = await findById(req.params.id);
 
@@ -53,14 +53,14 @@ export const customersController = {
       return res.json({
         success: true,
         data: toPublicCustomer(customer),
-        correlationId: req.id,
+        correlationId: req.correlationId,
       });
     } catch (err) {
       next(err);
     }
-  },
+  }) as RequestHandler,
 
-  create: async (req, res, next) => {
+  create: (async (req, res, next) => {
     try {
       if (!isUnscoped(req) && req.body.branchId !== req.auth!.branchId) {
         throw new ForbiddenError('You can only create customers in your own branch');
@@ -70,14 +70,14 @@ export const customersController = {
       return res.status(201).json({
         success: true,
         data: result,
-        correlationId: req.id,
+        correlationId: req.correlationId,
       });
     } catch (err) {
       next(err);
     }
-  },
+  }) as RequestHandler,
 
-  update: async (req, res, next) => {
+  update: (async (req, res, next) => {
     try {
       const customer = await findById(req.params.id);
 
@@ -89,14 +89,14 @@ export const customersController = {
       return res.json({
         success: true,
         data: result,
-        correlationId: req.id,
+        correlationId: req.correlationId,
       });
     } catch (err) {
       next(err);
     }
-  },
+  }) as RequestHandler,
 
-  setActive: async (req, res, next) => {
+  setActive: (async (req, res, next) => {
     try {
       const customer = await findById(req.params.id);
 
@@ -108,14 +108,14 @@ export const customersController = {
       return res.json({
         success: true,
         data: result,
-        correlationId: req.id,
+        correlationId: req.correlationId,
       });
     } catch (err) {
       next(err);
     }
-  },
+  }) as RequestHandler,
 
-  remove: async (req, res, next) => {
+  remove: (async (req, res, next) => {
     try {
       const customer = await findById(req.params.id);
 
@@ -128,5 +128,5 @@ export const customersController = {
     } catch (err) {
       next(err);
     }
-  },
+  }) as RequestHandler,
 };

@@ -9,7 +9,7 @@
             variant="primary"
             size="md"
             type="button"
-            @click="showCreateDialog = true"
+            @click="openCreate"
           >
             {{ t('tickets.addTicket') }}
           </BaseButton>
@@ -25,7 +25,7 @@
             class="filter-toggle"
             :class="{ active: showFilters }"
             @click="showFilters = !showFilters"
-            :aria-label="showFilters ? 'Hide filters' : 'Show filters'"
+            :aria-label="showFilters ? t('common.hideFilters') : t('common.showFilters')"
           >
             🔽 {{ t('common.filters') }}
             <span v-if="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</span>
@@ -48,38 +48,48 @@
           <div class="filter-grid">
             <label class="select-field">
               <span>{{ t('tickets.columns.status') }}</span>
-              <select v-model="statusFilter">
+              <select v-model="statusId">
                 <option value="">{{ t('tickets.filter.allStatuses') }}</option>
-                <option v-for="status in meta.statuses" :key="status.code" :value="status.code">
+                <option v-for="status in meta.statuses" :key="status.id" :value="status.id">
                   {{ localizedName(status) }}
                 </option>
               </select>
             </label>
             <label class="select-field">
               <span>{{ t('tickets.columns.priority') }}</span>
-              <select v-model="priorityFilter">
+              <select v-model="priorityId">
                 <option value="">{{ t('tickets.filter.allPriorities') }}</option>
-                <option v-for="priority in meta.priorities" :key="priority.code" :value="priority.code">
+                <option v-for="priority in meta.priorities" :key="priority.id" :value="priority.id">
                   {{ localizedName(priority) }}
                 </option>
               </select>
             </label>
             <label class="select-field">
               <span>{{ t('tickets.columns.category') }}</span>
-              <select v-model="categoryFilter">
+              <select v-model="categoryId">
                 <option value="">{{ t('tickets.filter.allCategories') }}</option>
-                <option v-for="category in meta.categories" :key="category.code" :value="category.code">
+                <option v-for="category in meta.categories" :key="category.id" :value="category.id">
                   {{ localizedName(category) }}
                 </option>
               </select>
             </label>
             <label class="select-field">
               <span>{{ t('tickets.columns.assignee') }}</span>
-              <select v-model="assigneeFilter">
+              <select v-model="assignedUserId">
                 <option value="">{{ t('tickets.filter.allAssignees') }}</option>
                 <option v-for="user in assignees" :key="user.id" :value="user.id">
                   {{ displayName(user) }}
                 </option>
+              </select>
+            </label>
+            <label class="select-field">
+              <span>{{ t('tickets.sla.label') }}</span>
+              <select v-model="slaStatus">
+                <option value="">{{ t('tickets.filter.allSla') }}</option>
+                <option value="ON_TRACK">{{ t('tickets.sla.status.ON_TRACK') }}</option>
+                <option value="AT_RISK">{{ t('tickets.sla.status.AT_RISK') }}</option>
+                <option value="BREACHED">{{ t('tickets.sla.status.BREACHED') }}</option>
+                <option value="MET">{{ t('tickets.sla.status.MET') }}</option>
               </select>
             </label>
           </div>
@@ -111,31 +121,32 @@
       />
 
       <div v-else class="table-scroll">
-        <table>
+        <table class="data-table">
           <thead>
             <tr>
-              <th :aria-sort="sortBy === 'ticketNumber' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
+              <th scope="col" :aria-sort="sortBy === 'ticketNumber' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
                 <button type="button" @click="toggleSort('ticketNumber')" class="sort-button">
                   {{ t('tickets.columns.number') }}
                   <span v-if="sortBy === 'ticketNumber'" class="sort-arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                 </button>
               </th>
-              <th>{{ t('tickets.columns.subject') }}</th>
-              <th>{{ t('tickets.columns.customer') }}</th>
-              <th :aria-sort="sortBy === 'priority' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
+              <th scope="col">{{ t('tickets.columns.subject') }}</th>
+              <th scope="col">{{ t('tickets.columns.customer') }}</th>
+              <th scope="col" :aria-sort="sortBy === 'priority' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
                 <button type="button" @click="toggleSort('priority')" class="sort-button">
                   {{ t('tickets.columns.priority') }}
                   <span v-if="sortBy === 'priority'" class="sort-arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                 </button>
               </th>
-              <th>{{ t('tickets.columns.status') }}</th>
-              <th :aria-sort="sortBy === 'createdAt' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
+              <th scope="col">{{ t('tickets.columns.status') }}</th>
+              <th scope="col">{{ t('tickets.sla.label') }}</th>
+              <th scope="col" :aria-sort="sortBy === 'createdAt' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
                 <button type="button" @click="toggleSort('createdAt')" class="sort-button">
                   {{ t('tickets.columns.createdAt') }}
                   <span v-if="sortBy === 'createdAt'" class="sort-arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                 </button>
               </th>
-              <th :aria-sort="sortBy === 'updatedAt' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
+              <th scope="col" :aria-sort="sortBy === 'updatedAt' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
                 <button type="button" @click="toggleSort('updatedAt')" class="sort-button">
                   {{ t('tickets.columns.updatedAt') }}
                   <span v-if="sortBy === 'updatedAt'" class="sort-arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
@@ -150,16 +161,17 @@
               <td><RouterLink :to="{ name: 'customer-detail', params: { id: row.customerId } }">{{ displayCustomerName(row) }}</RouterLink></td>
               <td>
                 <BaseBadge
-                  :variant="getPriorityVariant(row.priority?.code)"
-                  :label="useLocalizedName()(row.priority)"
+                  :variant="priorityVariant(row.priority?.code)"
+                  :label="localizedName(row.priority)"
                 />
               </td>
               <td>
                 <BaseBadge
-                  :variant="getStatusVariant(row.status?.code)"
-                  :label="useLocalizedName()(row.status)"
+                  :variant="statusVariant(row.status?.code)"
+                  :label="localizedName(row.status)"
                 />
               </td>
+              <td><SlaBadge :sla="row.sla" /></td>
               <td>{{ formatDate(row.createdAt) }}</td>
               <td>{{ formatDate(row.updatedAt) }}</td>
             </tr>
@@ -200,11 +212,14 @@
     >
       <form id="create-ticket-form" class="dialog-form" novalidate @submit.prevent="submitCreate">
         <BaseInput v-model="form.subject" :label="t('tickets.columns.subject')" required />
-        <textarea
-          v-model="form.description"
-          class="textarea-input"
-          :placeholder="t('tickets.notes.placeholder')"
-        ></textarea>
+        <label class="select-field">
+          <span>{{ t('tickets.columns.description') }}</span>
+          <textarea
+            v-model="form.description"
+            class="textarea-input"
+            :placeholder="t('tickets.create.descriptionPlaceholder')"
+          ></textarea>
+        </label>
 
         <label class="select-field">
           <span>{{ t('tickets.columns.customer') }} *</span>
@@ -267,14 +282,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, onUnmounted, computed } from 'vue'
+import { priorityVariant, statusVariant } from '@/composables/ticketBadges'
+import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { api } from '@/api/client'
-import { ApiError } from '@/types/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { useLocalizedName } from '@/composables/useLocalizedName'
 import { useFormat } from '@/composables/useFormat'
+import { useTicketFilters } from '@/composables/useTicketFilters'
+import { useApiError } from '@/composables/useApiError'
+import { useTicketMeta } from '@/composables/useTicketMeta'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -282,13 +300,19 @@ import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseSpinner from '@/components/ui/BaseSpinner.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import BaseDialog from '@/components/ui/BaseDialog.vue'
+import SlaBadge from '@/components/tickets/SlaBadge.vue'
 
 const PAGE_SIZE = 20
 
 interface Ref {
+  id: string
   code: string
   nameEn: string
   nameAr: string
+}
+
+interface SlaSnapshot {
+  status: 'ON_TRACK' | 'AT_RISK' | 'BREACHED' | 'MET'
 }
 
 interface Customer {
@@ -312,32 +336,47 @@ interface TicketRow {
   priority: Ref
   status: Ref
   category: Ref
+  sla: SlaSnapshot | null
   createdAt: Date
   updatedAt: Date
 }
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 const localizedName = useLocalizedName()
 const { formatDate, formatNumber } = useFormat()
+const { messageFor: messageForBase } = useApiError()
+const ticketMeta = useTicketMeta()
+
+const {
+  statusId,
+  priorityId,
+  categoryId,
+  assignedUserId,
+  unassignedOnly,
+  slaStatus,
+  activeFilterCount,
+  hasActiveFilters,
+  clearAllFilters: clearTicketFilters,
+} = useTicketFilters()
 
 const tickets = ref<TicketRow[]>([])
 const total = ref(0)
 const page = ref(1)
 const search = ref('')
-const statusFilter = ref('')
-const priorityFilter = ref('')
-const categoryFilter = ref('')
-const assigneeFilter = ref('')
-const unassignedOnly = ref(false)
+/** Scopes the list to one customer's tickets, e.g. a link from that
+ * customer's detail screen — not one of the UI filter-panel controls,
+ * so it is not counted in useTicketFilters' activeFilterCount. */
+const customerId = ref<string | undefined>()
 const sortBy = ref<'ticketNumber' | 'priority' | 'createdAt' | 'updatedAt'>('updatedAt')
 const sortDir = ref<'asc' | 'desc'>('desc')
 
 const loading = ref(false)
 const loadError = ref('')
 
-const meta = ref<{ statuses: Ref[]; priorities: Ref[]; categories: Ref[] }>({ statuses: [], priorities: [], categories: [] })
+const meta = ticketMeta.meta
 const assignees = ref<AssigneeRow[]>([])
 
 const showCreateDialog = ref(false)
@@ -357,18 +396,6 @@ const form = reactive({
   categoryCode: '',
 })
 
-const activeFilterCount = computed(() => {
-  let count = 0
-  if (statusFilter.value) count++
-  if (priorityFilter.value) count++
-  if (categoryFilter.value) count++
-  if (assigneeFilter.value) count++
-  if (unassignedOnly.value) count++
-  return count
-})
-
-const hasActiveFilters = computed(() => activeFilterCount.value > 0)
-
 let requestSeq = 0
 let searchTimer: ReturnType<typeof setTimeout> | undefined
 let customerSearchTimer: ReturnType<typeof setTimeout> | undefined
@@ -377,39 +404,13 @@ function displayName(row: AssigneeRow): string {
   return localizedName({ nameEn: row.fullNameEn, nameAr: row.fullNameAr })
 }
 
-function displayCustomerName(row: any): string {
+function displayCustomerName(row: { fullNameEn?: string; fullNameAr?: string; customer?: { fullNameEn?: string; fullNameAr?: string } | null }): string {
   return localizedName({ nameEn: row.fullNameEn || row.customer?.fullNameEn, nameAr: row.fullNameAr || row.customer?.fullNameAr })
 }
 
-function getPriorityVariant(code?: string): string {
-  const priorityMap: Record<string, string> = {
-    'URGENT': 'danger',
-    'HIGH': 'warning',
-    'MEDIUM': 'info',
-    'LOW': 'success',
-  }
-  return priorityMap[code || ''] || 'gray'
-}
-
-function getStatusVariant(code?: string): string {
-  const statusMap: Record<string, string> = {
-    'NEW': 'info',
-    'ASSIGNED': 'info',
-    'IN_PROGRESS': 'warning',
-    'PENDING_CUSTOMER': 'warning',
-    'RESOLVED': 'success',
-    'CLOSED': 'gray',
-  }
-  return statusMap[code || ''] || 'gray'
-}
-
+const ERROR_OVERRIDES = { 409: 'tickets.errors.invalidTransition' }
 function messageFor(err: unknown): string {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return t('errors.forbidden')
-    if (err.status === 409) return t('tickets.errors.invalidTransition')
-    return err.serverMessage ?? t('errors.unreachable')
-  }
-  return t('errors.unreachable')
+  return messageForBase(err, ERROR_OVERRIDES)
 }
 
 async function loadTickets() {
@@ -419,11 +420,13 @@ async function loadTickets() {
   try {
     const params = new URLSearchParams()
     if (search.value.trim()) params.set('q', search.value.trim())
-    if (statusFilter.value) params.set('status', statusFilter.value)
-    if (priorityFilter.value) params.set('priority', priorityFilter.value)
-    if (categoryFilter.value) params.set('category', categoryFilter.value)
-    if (assigneeFilter.value) params.set('assigneeId', assigneeFilter.value)
+    if (statusId.value) params.set('statusId', statusId.value)
+    if (priorityId.value) params.set('priorityId', priorityId.value)
+    if (categoryId.value) params.set('categoryId', categoryId.value)
+    if (assignedUserId.value) params.set('assignedUserId', assignedUserId.value)
     if (unassignedOnly.value) params.set('unassigned', 'true')
+    if (slaStatus.value) params.set('slaStatus', slaStatus.value)
+    if (customerId.value) params.set('customerId', customerId.value)
     params.set('page', String(page.value))
     params.set('pageSize', String(PAGE_SIZE))
     params.set('sortBy', sortBy.value)
@@ -431,7 +434,7 @@ async function loadTickets() {
 
     const response = await api.get(`/tickets?${params}`)
     if (seq !== requestSeq) return
-    tickets.value = response.data.items.map((t: any) => ({
+    tickets.value = response.data.items.map((t: Omit<TicketRow, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }) => ({
       ...t,
       createdAt: new Date(t.createdAt),
       updatedAt: new Date(t.updatedAt),
@@ -454,26 +457,27 @@ function toggleSort(column: 'ticketNumber' | 'priority' | 'createdAt' | 'updated
   }
 }
 
+// Guards against the initial route.query hydration (below) firing a second,
+// redundant request on top of the explicit one in onMounted.
+let initialized = false
+
 watch(search, () => {
+  if (!initialized) return
   clearTimeout(searchTimer)
   page.value = 1
   searchTimer = setTimeout(loadTickets, 300)
 })
 
-watch([statusFilter, priorityFilter, categoryFilter, assigneeFilter, unassignedOnly, sortBy, sortDir], () => {
+watch([statusId, priorityId, categoryId, assignedUserId, unassignedOnly, slaStatus, sortBy, sortDir], () => {
   page.value = 1
-  loadTickets()
+  if (initialized) loadTickets()
 })
 
 watch(page, loadTickets)
 
 function clearAllFilters() {
   search.value = ''
-  statusFilter.value = ''
-  priorityFilter.value = ''
-  categoryFilter.value = ''
-  assigneeFilter.value = ''
-  unassignedOnly.value = false
+  clearTicketFilters()
   page.value = 1
 }
 
@@ -481,12 +485,14 @@ function openCreate() {
   createError.value = ''
   form.subject = ''
   form.description = ''
+  form.customerId = ''
   form.department = ''
   form.priorityCode = ''
   form.categoryCode = ''
   selectedCustomer.value = null
   customerSearch.value = ''
   customerSearchResults.value = []
+  showCreateDialog.value = true
 }
 
 async function handleCustomerSearch() {
@@ -499,7 +505,7 @@ async function handleCustomerSearch() {
     try {
       const response = await api.get(`/customers?q=${encodeURIComponent(customerSearch.value.trim())}`)
       customerSearchResults.value = response.data.items
-    } catch (err) {
+    } catch {
       customerSearchResults.value = []
     }
   }, 300)
@@ -539,17 +545,36 @@ async function submitCreate() {
   }
 }
 
+/**
+ * Seeds filter state from the query string on mount, so a dashboard tile's
+ * link (e.g. `{ assignedUserId, slaStatus: 'BREACHED' }`) lands on an
+ * already-filtered list rather than the unfiltered default.
+ */
+function hydrateFromQuery() {
+  const q = route.query
+  if (typeof q.statusId === 'string') statusId.value = q.statusId
+  if (typeof q.priorityId === 'string') priorityId.value = q.priorityId
+  if (typeof q.categoryId === 'string') categoryId.value = q.categoryId
+  if (typeof q.assignedUserId === 'string') assignedUserId.value = q.assignedUserId
+  if (q.unassigned === 'true') unassignedOnly.value = true
+  if (typeof q.slaStatus === 'string') slaStatus.value = q.slaStatus
+  if (typeof q.q === 'string') search.value = q.q
+  if (typeof q.customerId === 'string') customerId.value = q.customerId
+}
+
 onMounted(async () => {
+  hydrateFromQuery()
   try {
-    const [metaRes, usersRes] = await Promise.all([
-      api.get('/tickets/meta'),
+    const [, usersRes] = await Promise.all([
+      ticketMeta.load(),
       api.get('/tickets/assignable-users'),
     ])
-    meta.value = metaRes.data
     assignees.value = usersRes.data
     await loadTickets()
   } catch (err) {
     loadError.value = messageFor(err)
+  } finally {
+    initialized = true
   }
 })
 
@@ -619,29 +644,6 @@ onUnmounted(() => {
   overflow-x: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: var(--spacing-3);
-  text-align: start;
-  border-bottom: 1px solid var(--color-gray-200);
-  white-space: nowrap;
-}
-
-th {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-gray-700);
-}
-
-td {
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-900);
-}
 
 .mono {
   font-family: monospace;
@@ -900,8 +902,8 @@ td {
 
 .error-text {
   padding: var(--spacing-2) var(--spacing-3);
-  background-color: #fee;
-  border-left: 4px solid var(--color-danger);
+  background-color: var(--color-danger-50);
+  border-inline-start: 4px solid var(--color-danger);
   border-radius: var(--radius-sm);
   color: var(--color-danger);
 }

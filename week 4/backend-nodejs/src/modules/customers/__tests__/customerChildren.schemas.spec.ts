@@ -3,6 +3,7 @@ import {
   createContactSchema,
   updateContactSchema,
   noteBodySchema,
+  customerHistoryQuerySchema,
   customerChildParamSchema,
 } from '../customerChildren.schemas';
 
@@ -76,6 +77,38 @@ describe('customerChildren.schemas', () => {
         childId: '223e4567-e89b-12d3-a456-426614174000',
       });
       expect(result.success).toBe(true);
+    });
+  });
+describe('customerHistoryQuerySchema', () => {
+    it('accepts an empty query, leaving the handler defaults to apply', () => {
+      const result = customerHistoryQuerySchema.safeParse({});
+      expect(result.success).toBe(true);
+      expect(result.data?.page).toBeUndefined();
+      expect(result.data?.pageSize).toBeUndefined();
+    });
+
+    it('coerces numeric strings from the query string', () => {
+      const result = customerHistoryQuerySchema.safeParse({ page: '2', pageSize: '50' });
+      expect(result.success).toBe(true);
+      expect(result.data?.page).toBe(2);
+      expect(result.data?.pageSize).toBe(50);
+    });
+
+    it('rejects a pageSize above the 100 cap', () => {
+      expect(customerHistoryQuerySchema.safeParse({ pageSize: '500' }).success).toBe(false);
+    });
+
+    it('rejects page 0 and negative pages', () => {
+      expect(customerHistoryQuerySchema.safeParse({ page: '0' }).success).toBe(false);
+      expect(customerHistoryQuerySchema.safeParse({ page: '-1' }).success).toBe(false);
+    });
+
+    it('rejects a non-numeric page', () => {
+      expect(customerHistoryQuerySchema.safeParse({ page: 'abc' }).success).toBe(false);
+    });
+
+    it('rejects a fractional pageSize', () => {
+      expect(customerHistoryQuerySchema.safeParse({ pageSize: '2.5' }).success).toBe(false);
     });
   });
 });

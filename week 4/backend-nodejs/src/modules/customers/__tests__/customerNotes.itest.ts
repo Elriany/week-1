@@ -127,7 +127,7 @@ describe('customerNotes — integration tests', () => {
     expect(editRes.body.data.body).toBe('Updated note');
   });
 
-  it('non-author cannot edit another user's note', async () => {
+  it("non-author cannot edit another user's note", async () => {
     const createRes = await request(app)
       .post(`/api/v1/customers/${customer1.id}/notes`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -143,7 +143,7 @@ describe('customerNotes — integration tests', () => {
     expect(editRes.status).toBe(403);
   });
 
-  it('administrator can delete another user's note', async () => {
+  it("administrator can delete another user's note", async () => {
     const createRes = await request(app)
       .post(`/api/v1/customers/${customer1.id}/notes`)
       .set('Authorization', `Bearer ${agentToken}`)

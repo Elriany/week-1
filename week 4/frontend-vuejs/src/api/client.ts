@@ -1,4 +1,4 @@
-import { ApiError, type ApiErrorBody } from '@/types/api';
+import { ApiError, type ApiErrorBody, type ApiPayload } from '@/types/api';
 
 // TODO (Story 04 follow-up): Backend API error messages are English-only.
 // Localizing them requires an Accept-Language header and a server-side catalogue.
@@ -33,11 +33,12 @@ function generateCorrelationId(): string {
   return Math.random().toString(36).substr(2, 9);
 }
 
-interface FetchOptions extends RequestInit {
-  body?: any;
+interface FetchOptions extends Omit<RequestInit, 'body'> {
+  /** Serialized with JSON.stringify unless it is FormData. */
+  body?: unknown;
 }
 
-export async function apiCall<T = any>(
+export async function apiCall<T = ApiPayload>(
   endpoint: string,
   options: FetchOptions = {},
 ): Promise<T> {
@@ -45,10 +46,11 @@ export async function apiCall<T = any>(
 
   const token = tokenProvider();
 
-  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const { body, ...rest } = options;
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
   const fetchOptions: RequestInit = {
-    ...options,
+    ...rest,
     headers: {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       'Accept': 'application/json',
@@ -58,15 +60,17 @@ export async function apiCall<T = any>(
     },
   };
 
-  if (options.body && typeof options.body === 'object' && !isFormData) {
-    fetchOptions.body = JSON.stringify(options.body);
+  if (isFormData) {
+    fetchOptions.body = body as FormData;
+  } else if (body && typeof body === 'object') {
+    fetchOptions.body = JSON.stringify(body);
   }
 
   let response: Response;
 
   try {
     response = await fetch(`${BASE_URL}${endpoint}`, fetchOptions);
-  } catch (err) {
+  } catch {
     throw new ApiError(
       0,
       'NETWORK_ERROR',
@@ -91,10 +95,10 @@ export async function apiCall<T = any>(
     return null as T;
   }
 
-  let data: any;
+  let data: unknown;
   try {
     data = await response.json();
-  } catch (err) {
+  } catch {
     throw new ApiError(
       response.status,
       'PARSE_ERROR',
@@ -163,15 +167,15 @@ async function downloadFile(endpoint: string): Promise<void> {
 }
 
 export const api = {
-  get: <T = any>(endpoint: string) => apiCall<T>(endpoint, { method: 'GET' }),
-  post: <T = any>(endpoint: string, body?: any) =>
+  get: <T = ApiPayload>(endpoint: string) => apiCall<T>(endpoint, { method: 'GET' }),
+  post: <T = ApiPayload>(endpoint: string, body?: ApiPayload) =>
     apiCall<T>(endpoint, { method: 'POST', body }),
-  put: <T = any>(endpoint: string, body?: any) =>
+  put: <T = ApiPayload>(endpoint: string, body?: ApiPayload) =>
     apiCall<T>(endpoint, { method: 'PUT', body }),
-  patch: <T = any>(endpoint: string, body?: any) =>
+  patch: <T = ApiPayload>(endpoint: string, body?: ApiPayload) =>
     apiCall<T>(endpoint, { method: 'PATCH', body }),
-  delete: <T = any>(endpoint: string) => apiCall<T>(endpoint, { method: 'DELETE' }),
-  upload: <T = any>(endpoint: string, formData: FormData) =>
+  delete: <T = ApiPayload>(endpoint: string) => apiCall<T>(endpoint, { method: 'DELETE' }),
+  upload: <T = ApiPayload>(endpoint: string, formData: FormData) =>
     apiCall<T>(endpoint, { method: 'POST', body: formData }),
   download: (endpoint: string) => downloadFile(endpoint),
 };

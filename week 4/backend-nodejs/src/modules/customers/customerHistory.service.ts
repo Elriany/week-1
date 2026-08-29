@@ -107,6 +107,13 @@ async function attachmentEntries(customerId: string): Promise<HistoryEntry[]> {
   }));
 }
 
+/**
+ * Known limit: this loads every ticket, note and attachment for the customer,
+ * merges them in memory, then slices one page out. Fine at the scale this
+ * product targets; a customer with thousands of tickets would pull them all to
+ * return twenty. Fixing it properly means a three-source SQL union, which is
+ * more complexity than the current requirement justifies.
+ */
 export async function getHistory(customerId: string, page = 1, pageSize = 20): Promise<PagedHistory> {
   const [tickets, notes, files] = await Promise.all([
     ticketEntries(customerId),

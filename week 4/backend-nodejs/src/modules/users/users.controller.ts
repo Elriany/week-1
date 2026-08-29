@@ -9,6 +9,7 @@ import {
   findById,
   toPublicUser,
   listRoles,
+  linkCustomer,
   type ListUsersFilter,
 } from './users.service';
 
@@ -117,4 +118,13 @@ const roles: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const usersController = { list, getOne, create, update, setActive, roles };
+const linkCustomerHandler: RequestHandler = async (req, res, next) => {
+  try {
+    const data = await linkCustomer(req.params.id, req.body.customerId, req.auth!.userId);
+    res.json({ success: true, data, correlationId: req.correlationId });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const usersController = { list, getOne, create, update, setActive, roles, linkCustomer: linkCustomerHandler };

@@ -38,3 +38,8 @@ export const listUsersQuerySchema = z.object({
 export const setActiveSchema = z.object({
   isActive: z.boolean(),
 });
+
+// Nullable, not optional — an omitted field must be a 422, not a silent unlink.
+export const linkCustomerSchema = z.object({
+  customerId: z.string().uuid().nullable(),
+});

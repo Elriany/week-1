@@ -15,4 +15,7 @@ export class TicketPriority extends BaseEntity {
 
   @Column({ type: 'int', default: 0 })
   sortOrder!: number;
+
+  @Column({ type: 'bit', default: true })
+  isActive!: boolean;
 }

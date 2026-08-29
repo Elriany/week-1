@@ -13,16 +13,34 @@
     "filters": "Filters",
     "clearAll": "Clear all",
     "note": "Note",
-    "optional": "Optional"
+    "optional": "Optional",
+    "closeDialog": "Close dialog",
+    "showFilters": "Show filters",
+    "hideFilters": "Hide filters"
   },
   "nav": {
     "dashboard": "Dashboard",
-    "about": "About",
     "users": "Users",
     "customers": "Customers",
     "tickets": "Tickets",
+    "reports": "Reports",
     "roles": "Roles",
-    "notFound": "Not Found"
+    "kb": "Help Centre",
+    "myTickets": "My Tickets",
+    "newRequest": "New Request",
+    "admin": "Administration",
+    "sla": "SLA Policies",
+    "audit": "Audit Log",
+    "notFound": "Not Found",
+    "toggleMenu": "Toggle navigation menu",
+    "breadcrumbLabel": "Breadcrumb",
+    "groups": {
+      "work": "Work",
+      "knowledge": "Knowledge",
+      "admin": "Administration"
+    },
+    "deniedBanner": "You do not have permission to open that page.",
+    "dismiss": "Dismiss"
   },
   "auth": {
     "subtitle": "Sign in to continue",
@@ -67,6 +85,7 @@
       "email": "Email",
       "role": "Role",
       "status": "Status",
+      "customer": "Customer",
       "actions": "Actions"
     },
     "status": {
@@ -79,6 +98,18 @@
     },
     "errors": {
       "emailTaken": "A user with this email already exists"
+    },
+    "link": {
+      "action": "Link customer",
+      "title": "Link Customer",
+      "search": "Search customers",
+      "current": "Currently linked",
+      "unlink": "Unlink",
+      "none": "Not linked",
+      "alreadyLinked": "This customer is already linked to another account",
+      "notCustomerRole": "Only a customer-role user can be linked",
+      "inactiveCustomer": "This customer does not exist or is not active",
+      "success": "Customer link updated"
     }
   },
   "roles": {
@@ -92,57 +123,91 @@
   "app": {
     "title": "AZM Customer Support CRM"
   },
-  "section": {
-    "welcome": "Welcome",
-    "features": "Features",
-    "quickStats": "Quick Stats",
-    "nextSteps": "Next Steps",
-    "about": "About",
-    "systemHealth": "System Health"
+  "dashboard": {
+    "title": "My Workspace",
+    "refresh": "Refresh",
+    "myOpen": "My Open",
+    "myBreached": "My Breached",
+    "unassigned": "Unassigned",
+    "branchOpen": "Branch Open",
+    "section": {
+      "byStatus": "My Tickets by Status",
+      "byPriority": "My Tickets by Priority",
+      "sla": "SLA Breakdown"
+    },
+    "sla": {
+      "noPolicy": "No policy configured",
+      "noPolicyHint": "These priorities have no SLA policy configured, so no target applies."
+    },
+    "empty": {
+      "title": "Nothing to show",
+      "description": "Your workspace will populate as tickets are created and assigned."
+    }
+  },
+  "reports": {
+    "title": "Management Report",
+    "apply": "Apply",
+    "allTime": "All time",
+    "rangeLabel": "Showing {from} to {to}",
+    "from": "From",
+    "to": "To",
+    "totals": {
+      "total": "Total",
+      "open": "Open",
+      "closed": "Closed",
+      "unassigned": "Unassigned"
+    },
+    "section": {
+      "byStatus": "By Status",
+      "byPriority": "By Priority",
+      "byCategory": "By Category",
+      "byChannel": "By Channel",
+      "workload": "Agent Workload",
+      "resolution": "Resolution Stats",
+      "sla": "SLA Indicators"
+    },
+    "columns": {
+      "label": "Label",
+      "count": "Count",
+      "percent": "Percent",
+      "agent": "Agent",
+      "open": "Open",
+      "resolved": "Resolved",
+      "breached": "Breached"
+    },
+    "uncategorized": "Uncategorised",
+    "unknownAgent": "Deleted user",
+    "resolution": {
+      "count": "Resolved",
+      "average": "Average",
+      "median": "Median",
+      "minutes": "minutes",
+      "noData": "No data"
+    },
+    "errors": {
+      "invalidRange": "The date range is invalid — \"from\" must not be after \"to\""
+    },
+    "empty": {
+      "title": "No data",
+      "description": "No tickets match this range."
+    },
+    "subtitle": "Ticket volume, resolution times and workload by agent."
   },
   "content": {
-    "welcome": {
-      "description": "Welcome to AZM Customer Support CRM. Get started by exploring the features and managing your tickets efficiently."
-    },
-    "about": {
-      "description": "This is the About page. It displays the system health status and information about the application."
-    },
-    "pageNotFoundDescription": "The page you are looking for does not exist.",
-    "noDataAvailable": "No data available at the moment."
+    "pageNotFoundDescription": "The page you are looking for does not exist."
   },
   "action": {
-    "getStarted": "Get Started",
-    "loadData": "Load Data",
     "backToDashboard": "Back to Dashboard",
     "switchLanguage": "Switch Language"
   },
-  "feature": {
-    "ticketManagement": "Ticket Management",
-    "customerTracking": "Customer Tracking",
-    "analyticsReports": "Analytics Reports",
-    "teamCollaboration": "Team Collaboration"
-  },
-  "step": {
-    "setupAccount": "Set up your account",
-    "configureTeam": "Configure your team",
-    "exploreFeatures": "Explore all features"
-  },
   "status": {
-    "activeTickets": "Active Tickets",
-    "totalUsers": "Total Users",
     "loading": "Loading",
-    "status": "Status",
-    "noData": "No Data"
-  },
-  "info": {
-    "timestamp": "Timestamp",
-    "environment": "Environment"
+    "status": "Status"
   },
   "errors": {
     "unreachable": "Cannot reach the server",
     "notFound": "Page not found",
     "forbidden": "You do not have permission to perform this action",
-    "loadingHealth": "Failed to load system health",
     "networkError": "Network error"
   },
   "ticket": {
@@ -200,6 +265,7 @@
       "title": "Customer Profile",
       "edit": "Edit",
       "backToList": "Back to Customers",
+      "viewTickets": "View Tickets",
       "notFound": {
         "title": "Customer Not Found",
         "description": "This customer does not exist or has been deleted."
@@ -216,7 +282,8 @@
       "empty": {
         "title": "No contacts yet",
         "description": "Add a contact to get started."
-      }
+      },
+      "jobTitle": "Job title"
     },
     "notes": {
       "title": "Notes",
@@ -281,6 +348,7 @@
     "columns": {
       "number": "Ticket #",
       "subject": "Subject",
+      "description": "Description",
       "status": "Status",
       "priority": "Priority",
       "category": "Category",
@@ -295,7 +363,8 @@
       "allPriorities": "All priorities",
       "allCategories": "All categories",
       "allAssignees": "All assignees",
-      "unassigned": "Unassigned"
+      "unassigned": "Unassigned",
+      "allSla": "All SLA statuses"
     },
     "sort": {
       "asc": "Ascending",
@@ -323,7 +392,8 @@
       "selectCustomer": "Select a customer",
       "selectDepartment": "Select department",
       "selectPriority": "Select priority",
-      "selectCategory": "Select category"
+      "selectCategory": "Select category",
+      "descriptionPlaceholder": "Describe the issue in as much detail as you can"
     },
     "notes": {
       "title": "Notes",
@@ -396,6 +466,247 @@
       "invalidTransition": "This status change is not allowed",
       "tooLarge": "File exceeds the maximum size",
       "unsupportedType": "File type is not supported"
+    },
+    "sla": {
+      "label": "SLA",
+      "responseDue": "Response Due",
+      "resolutionDue": "Resolution Due",
+      "respondedAt": "Responded At",
+      "resolvedAt": "Resolved At",
+      "noPolicy": "No SLA policy is configured for this priority.",
+      "status": {
+        "ON_TRACK": "On Track",
+        "AT_RISK": "At Risk",
+        "BREACHED": "Breached",
+        "MET": "Met"
+      }
     }
+  },
+  "kb": {
+    "title": "Help Centre",
+    "search": "Search articles",
+    "allCategories": "All categories",
+    "includeDrafts": "Include drafts",
+    "newArticle": "New article",
+    "draft": "Draft",
+    "published": "Published",
+    "article": {
+      "back": "Back to Help Centre",
+      "edit": "Edit",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "delete": "Delete",
+      "confirmDelete": "Delete article",
+      "viewIn": "View in",
+      "updated": "Updated",
+      "notFound": "Article Not Found",
+      "notFoundHint": "This article does not exist or is not published."
+    },
+    "form": {
+      "titleEn": "Title (English)",
+      "titleAr": "Title (Arabic)",
+      "bodyEn": "Body (English)",
+      "bodyAr": "Body (Arabic)",
+      "category": "Category",
+      "noCategory": "No category",
+      "sortOrder": "Sort order",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "empty": {
+      "title": "No articles yet",
+      "description": "Published articles will appear here."
+    },
+    "noResults": {
+      "title": "No articles found",
+      "description": "Try adjusting your search or filters."
+    },
+    "panel": {
+      "title": "Knowledge Base",
+      "search": "Search the Help Centre",
+      "openArticle": "Open article",
+      "noResults": "No matching articles"
+    },
+    "subtitle": "Published articles agents and customers can search."
+  },
+  "portal": {
+    "title": "My Tickets",
+    "newRequest": "New Request",
+    "backToList": "Back to My Tickets",
+    "columns": {
+      "number": "Ticket #",
+      "subject": "Subject",
+      "status": "Status",
+      "sla": "SLA",
+      "created": "Created",
+      "updated": "Updated"
+    },
+    "empty": {
+      "title": "No tickets yet",
+      "description": "Requests you file will appear here."
+    },
+    "noResults": {
+      "title": "No tickets found",
+      "description": "Try adjusting your search."
+    },
+    "unlinked": {
+      "title": "Account not linked",
+      "description": "This account is not linked to a customer record. Please contact support so we can connect your account."
+    },
+    "detail": {
+      "title": "Ticket Details",
+      "description": "Description",
+      "notFound": "Ticket Not Found",
+      "notFoundHint": "This ticket does not exist or is not associated with your account.",
+      "helpCentre": "Help Centre"
+    },
+    "reply": {
+      "title": "Reply",
+      "placeholder": "Add a reply...",
+      "submit": "Send Reply",
+      "success": "Your reply has been added."
+    },
+    "form": {
+      "subject": "Subject",
+      "description": "Description",
+      "category": "Category",
+      "priority": "Priority",
+      "submit": "Submit Request",
+      "successTitle": "Request submitted",
+      "successBody": "Your ticket {number} has been created. Redirecting to the ticket details…",
+      "configError": "This branch is not yet configured to receive requests. Please contact support directly."
+    },
+    "priority": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    }
+  },
+  "admin": {
+    "title": "Administration",
+    "tabs": {
+      "branches": "Branches",
+      "departments": "Departments",
+      "categories": "Categories",
+      "priorities": "Priorities",
+      "statuses": "Statuses"
+    },
+    "columns": {
+      "code": "Code",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "sortOrder": "Sort order",
+      "active": "Active",
+      "branch": "Branch",
+      "actions": "Actions"
+    },
+    "actions": {
+      "new": "New",
+      "edit": "Edit",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "confirmDeactivate": "Confirm deactivation",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "statuses": {
+      "note": "Ticket statuses are defined by the workflow and cannot be added or removed."
+    },
+    "branches": {
+      "title": "Branches",
+      "adminOnlyNote": "Only an Administrator can create or edit branches. You can view the list."
+    },
+    "departments": {
+      "title": "Departments",
+      "allBranches": "All branches",
+      "selectBranch": "Select a branch",
+      "lockedBranchNote": "You can administer departments in your own branch only."
+    },
+    "errors": {
+      "branchInUse": "This branch cannot be deactivated while it still has active users or open tickets.",
+      "departmentInUse": "This department cannot be deactivated while it still has active users or open tickets.",
+      "priorityHasSla": "This priority cannot be deactivated while an active SLA policy still targets it.",
+      "duplicateCode": "This code is already in use",
+      "statusImmutable": "Ticket statuses cannot be created or deactivated"
+    },
+    "empty": {
+      "title": "Nothing here yet",
+      "description": "Rows you add will appear here."
+    },
+    "subtitle": "Manage branches, departments, categories, priorities and statuses.",
+    "slaSubtitle": "Response and resolution targets applied to new tickets by priority."
+  },
+  "sla": {
+    "title": "SLA Policies",
+    "wallClockNote": "Targets are measured in wall-clock minutes, not business hours.",
+    "minutesHint": "≈ {hours} hours",
+    "columns": {
+      "priority": "Priority",
+      "responseTarget": "Response Target",
+      "resolutionTarget": "Resolution Target",
+      "active": "Active"
+    },
+    "form": {
+      "responseTargetMinutes": "Response target (minutes)",
+      "resolutionTargetMinutes": "Resolution target (minutes)",
+      "isActive": "Active",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "resolutionBelowResponse": "The resolution target must be at least the response target"
+    }
+  },
+  "audit": {
+    "title": "Audit Log",
+    "noDetails": "No details",
+    "columns": {
+      "timestamp": "Timestamp",
+      "actor": "Actor",
+      "action": "Action",
+      "entityType": "Entity Type",
+      "summary": "Summary",
+      "details": "Details"
+    },
+    "filter": {
+      "allTypes": "All types",
+      "allActions": "All actions",
+      "allActors": "All actors",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply",
+      "clear": "Clear"
+    },
+    "action": {
+      "TICKET_CREATED": "Ticket created",
+      "TICKET_STATUS_CHANGED": "Status changed",
+      "TICKET_ASSIGNED": "Ticket assigned",
+      "TICKET_UNASSIGNED": "Ticket unassigned",
+      "TICKET_PRIORITY_CHANGED": "Priority changed",
+      "CONFIG_CREATED": "Configuration created",
+      "CONFIG_UPDATED": "Configuration updated",
+      "CONFIG_DEACTIVATED": "Configuration deactivated",
+      "KB_ARTICLE_PUBLISHED": "Article published",
+      "KB_ARTICLE_UNPUBLISHED": "Article unpublished",
+      "SLA_POLICY_UPDATED": "SLA policy updated"
+    },
+    "entityType": {
+      "Ticket": "Ticket",
+      "Branch": "Branch",
+      "Department": "Department",
+      "TicketCategory": "Ticket Category",
+      "TicketPriority": "Ticket Priority",
+      "TicketStatus": "Ticket Status",
+      "KbArticle": "KB Article",
+      "KbCategory": "KB Category",
+      "SlaPolicy": "SLA Policy",
+      "User": "User"
+    },
+    "empty": {
+      "title": "No audit entries",
+      "description": "Actions taken across the system will appear here."
+    },
+    "subtitle": "A read-only record of who changed what, and when."
   }
 }

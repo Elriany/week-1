@@ -15,4 +15,7 @@ export class TicketCategory extends BaseEntity {
 
   @Column({ type: 'int', default: 0 })
   sortOrder!: number;
+
+  @Column({ type: 'bit', default: true })
+  isActive!: boolean;
 }

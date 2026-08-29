@@ -21,3 +21,9 @@ export const customerChildParamSchema = z.object({
   id: z.string().uuid(),
   childId: z.string().uuid(),
 });
+
+/** Same defaults and bounds the handler applied by hand: default 20, max 100. */
+export const customerHistoryQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+});

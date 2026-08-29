@@ -100,15 +100,9 @@ async function noteEntries(
   ticketId: string,
   includeInternal: boolean,
 ): Promise<Array<{ kind: 'note'; id: string; occurredAt: Date; title: string; actor: { id: string; fullNameEn: string; fullNameAr: string } | null }>> {
-  let query = AppDataSource.getRepository(TicketComment)
+  const query = AppDataSource.getRepository(TicketComment)
     .createQueryBuilder('n')
-    .leftJoinAndSelect('n.author', 'author', 'author.id = n.authorUserId');
-
-  if (!includeInternal) {
-    query = query.where('n.isInternal = :isInternal', { isInternal: false });
-  }
-
-  const notes = await query
+    .leftJoinAndSelect('n.author', 'author', 'author.id = n.authorUserId')
     .select([
       'n.id',
       'n.ticketId',
@@ -119,8 +113,15 @@ async function noteEntries(
       'author.fullNameEn',
       'author.fullNameAr',
     ])
-    .where('n.ticketId = :ticketId', { ticketId })
-    .getMany();
+    .where('n.ticketId = :ticketId', { ticketId });
+
+  // A second `.where()` here would silently replace the ticketId condition
+  // above instead of combining with it — `.andWhere()` is required.
+  if (!includeInternal) {
+    query.andWhere('n.isInternal = :isInternal', { isInternal: false });
+  }
+
+  const notes = await query.getMany();
 
   return notes.map(n => {
     const truncated = n.body.length > 100 ? n.body.slice(0, 100) + '…' : n.body;

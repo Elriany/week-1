@@ -16,7 +16,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import BaseSpinner from './BaseSpinner.vue'
 
 interface Props {
@@ -27,7 +26,7 @@ interface Props {
   loading?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'md',
   type: 'button',
@@ -44,6 +43,10 @@ const props = withDefaults(defineProps<Props>(), {
   gap: var(--spacing-2);
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-md);
+  /* Nothing in the reset clears the user-agent button border, so without this
+     every button renders the browser default around its fill. Transparent
+     keeps the box model identical to .variant-secondary, which shows one. */
+  border: 1px solid transparent;
   transition: all var(--transition-base);
   white-space: nowrap;
 }
@@ -77,6 +80,7 @@ const props = withDefaults(defineProps<Props>(), {
 .variant-secondary {
   background-color: var(--color-gray-200);
   color: var(--color-gray-900);
+  border-color: var(--color-gray-300);
 }
 
 .variant-secondary:hover:not(.disabled) {
@@ -89,21 +93,27 @@ const props = withDefaults(defineProps<Props>(), {
 }
 
 .variant-danger:hover:not(.disabled) {
-  background-color: #991b1b;
+  background-color: var(--color-danger-dark);
 }
 
 .variant-ghost {
   background-color: transparent;
   color: var(--color-primary);
+  border-color: transparent;
 }
 
 .variant-ghost:hover:not(.disabled) {
-  background-color: var(--color-gray-100);
+  background-color: var(--color-primary-50);
 }
 
-/* Disabled state */
-.disabled {
-  opacity: 0.5;
+/* Disabled state. opacity: 0.5 over a blue fill drops white text to roughly
+   2:1; these explicit colours are 6.10:1. Doubled class beats the variant
+   rules on specificity. */
+.base-button.disabled,
+.base-button.disabled:hover {
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-600);
+  border-color: var(--color-gray-300);
   cursor: not-allowed;
 }
 

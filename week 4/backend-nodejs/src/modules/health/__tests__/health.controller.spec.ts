@@ -15,7 +15,9 @@ describe('health controller', () => {
     }
   })
 
-  it('check endpoint returns status up', () => {
+  // Mounted at /api/v1/health, so it uses the same envelope as the rest of the
+  // versioned API. The bare `{ status: 'up' }` probe lives at /health.
+  it('check endpoint returns status up inside the standard envelope', () => {
     const result: any = {}
     mockRes.json = (data: any) => {
       Object.assign(result, data)
@@ -24,6 +26,8 @@ describe('health controller', () => {
 
     healthController.check(mockReq, mockRes, undefined as any)
 
-    expect(result.status).toBe('up')
+    expect(result.success).toBe(true)
+    expect(result.data.status).toBe('up')
+    expect(result.correlationId).toBe('test-id')
   })
 })

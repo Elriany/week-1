@@ -10,9 +10,10 @@
       :autocomplete="autocomplete"
       :dir="dir"
       :aria-invalid="Boolean(error)"
+      :aria-describedby="error ? errorId : undefined"
       @input="onInput"
     />
-    <span v-if="error" class="error">{{ error }}</span>
+    <span v-if="error" :id="errorId" class="error" role="alert">{{ error }}</span>
   </div>
 </template>
 
@@ -50,6 +51,7 @@ function onInput(event: Event) {
 }
 
 const inputId = computed(() => `input-${useId()}`)
+const errorId = computed(() => `${inputId.value}-error`)
 </script>
 
 <style scoped>
@@ -80,7 +82,7 @@ input:hover:not(:disabled) {
 input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
 }
 
 input:disabled {

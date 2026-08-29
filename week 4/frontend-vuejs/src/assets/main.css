@@ -1,22 +1,79 @@
-@import './base.css';
-
-/* CSS Custom Properties */
+/* CSS Custom Properties.
+   Palette is Tailwind's neutral + blue ramp. Every colour, space, radius,
+   shadow and weight in the app comes from here — a hex value in a .vue file
+   is a defect unless it is an rgba() overlay on a neutral scrim. */
 :root {
-  /* Colors */
-  --color-primary: #3b82f6;
+  /* Colors.
+     --color-primary is blue-600, not blue-500: with white text blue-500 is
+     3.68:1, below the 4.5:1 WCAG AA threshold, and it is the colour of every
+     primary button, every link and the active sidebar item. blue-600 is 5.17:1. */
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  /* Channel triplet for rgba() focus rings. CSS cannot derive channels from a
+     hex custom property, so this MUST be kept in sync with --color-primary
+     by hand — a mismatch shows a ring in the old blue and nobody notices. */
+  --color-primary-rgb: 37, 99, 235;
+  --color-primary-50: #eff6ff;
   --color-primary-light: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-900: #1e3a8a;
   --color-danger: #ef4444;
   --color-danger-light: #fee2e2;
+  --color-danger-dark: #b91c1c;
+  --color-danger-50: #fef2f2;
   --color-success: #10b981;
   --color-success-light: #dcfce7;
   --color-warning: #f59e0b;
   --color-warning-light: #fed7aa;
+  --color-warning-50: #fffbeb;
+  --color-warning-200: #fde68a;
+  --color-success-50: #dcfce7;
+  --color-success-200: #86efac;
+  --color-success-dark: #166534;
+  --color-info-900: #0c4a6e;
+
+  /* Aliases kept so TicketDetailView.vue compiles; prefer the
+     --color-primary-* names in new code. */
+  --color-blue-50: var(--color-primary-50);
+  --color-blue-200: var(--color-primary-200);
+
+  /* The one surface white, shared by BaseCard, BaseDialog and AppTopbar. */
+  --color-surface: #ffffff;
+
+  /* Badge pairs. Contrast of foreground on background, all above the 4.5:1
+     AA threshold for the small text a badge uses. `primary` and `info` are
+     deliberately different hues — they used to be the same two colours, so
+     an identity chip and a status chip were indistinguishable. */
+  --badge-primary-bg: #dbeafe;   /* #1e40af on this: 7.15:1 */
+  --badge-primary-fg: #1e40af;
+  --badge-primary-border: #bfdbfe;
+  --badge-info-bg: #e0f2fe;      /* sky-100 / sky-800: 6.59:1 */
+  --badge-info-fg: #075985;
+  --badge-info-border: #bae6fd;
+  --badge-success-bg: #dcfce7;   /* #166534 on this: 6.49:1 */
+  --badge-success-fg: #166534;
+  --badge-success-border: #bbf7d0;
+  --badge-danger-bg: #fee2e2;    /* #991b1b on this: 6.80:1 */
+  --badge-danger-fg: #991b1b;
+  --badge-danger-border: #fecaca;
+  --badge-warning-bg: #fef3c7;   /* amber-100 / amber-800: 6.37:1. The old
+                                    #fed7aa ground also passed (5.24:1); this
+                                    one just sits in the same amber family. */
+  --badge-warning-fg: #92400e;
+  --badge-warning-border: #fde68a;
+  --badge-gray-bg: #e5e7eb;      /* gray-200 / gray-700: 8.33:1 */
+  --badge-gray-fg: #374151;
+  --badge-gray-border: #d1d5db;
 
   --color-gray-50: #f9fafb;
   --color-gray-100: #f3f4f6;
   --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
   --color-gray-600: #4b5563;
   --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
   --color-gray-900: #111827;
 
   /* Spacing */
@@ -36,6 +93,7 @@
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
 
+  --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
@@ -43,10 +101,12 @@
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
+  --radius-full: 9999px;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
   /* Transitions */
   --transition-base: 150ms ease-in-out;
@@ -100,13 +160,73 @@ a {
 }
 
 a:hover {
-  color: #2563eb;
+  color: var(--color-primary-dark);
+}
+
+/* Keyboard focus. `:focus-visible` (not `:focus`) so a mouse click on a button
+   does not leave a ring behind, while Tab always shows where you are. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* The sidebar is a near-black ground; the primary blue is only 2.2:1 against
+   it, so the ring there is white. */
+.sidebar :focus-visible {
+  outline-color: rgba(255, 255, 255, 0.8);
 }
 
 /* Buttons */
 button {
   font-family: inherit;
   cursor: pointer;
+}
+
+/* Shared table shell. Views keep their own <table> markup; this gives all
+   thirteen data tables one header, row rhythm and alignment, replacing an
+   identical 22-line block that was copied into each of them. */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.data-table thead th {
+  padding: var(--spacing-3);
+  text-align: start;
+  white-space: nowrap;
+  background-color: var(--color-gray-50);
+  border-block-end: 1px solid var(--color-gray-200);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-700);
+}
+
+.data-table tbody td {
+  padding: var(--spacing-3);
+  text-align: start;
+  white-space: nowrap;
+  border-block-end: 1px solid var(--color-gray-200);
+  color: var(--color-gray-900);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--color-gray-50);
+}
+
+/* A wide table scrolls inside its own column instead of widening the page. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* One-line statement of what a screen is for, on the screens whose purpose the
+   table alone does not convey. */
+.page-subtitle {
+  margin: 0 0 var(--spacing-4);
+  color: var(--color-gray-600);
+  font-size: var(--font-size-sm);
 }
 
 /* Lists */
@@ -133,4 +253,12 @@ ol li {
 /* Logical Properties for RTL Support */
 :root {
   direction: ltr;
+  /* A physical translate cannot follow inset-inline-start, so the mobile
+     drawer multiplies its offset by this to leave through whichever edge it
+     is docked to. Keyed off [dir], which the locale store always sets. */
+  --drawer-direction: 1;
+}
+
+[dir='rtl'] {
+  --drawer-direction: -1;
 }
